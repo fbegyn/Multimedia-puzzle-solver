@@ -43,25 +43,34 @@ class Puzzle:
         cv2.destroyWindow('contours')
 
     # Given the contours, determine all the puzzle pieces
-    def calc_pieces(self):
+    def calc_pieces(self, margin=25, draw=False):
+        self.pieces = []
+        offset = int(margin/2)
+        if draw:
+            mask = self.puzzle.copy()
+
         if self.__contours is None:
             self.contours()
 
-
-        print(self.__contours)
-        print('----------------')
         h, w = self.__thresh.shape[:2]
         for i in self.__contours:
-            print(np.amax(i))
-            print(np.amin(i))
-            print('------------------')
-            mask = np.zeros_like(self.puzzle)
-            cv2.drawContours(mask, i, -1, (255, 255, 255), -1)
-            out = np.zeros_like(mask)
-            out[mask==255] = self.puzzle[mask==255]
-            cv2.imshow('test', out)
+            rect = cv2.boundingRect(i)
+            x, y, w, h = rect
+            self.pieces.append(self.puzzle[y-offset:y+h+offset,x-offset:x+w+offset].copy())
+            if draw:
+                cv2.rectangle(mask, (x-offset, y-offset), (x+w+offset, y+h+offset), (0, 255, 0), 1)
+
+        if draw:
+            cv2.imshow('test', mask)
             cv2.waitKey()
             cv2.destroyWindow('test')
 
+    def show_pieces(self, time=500):
+        if self.pieces is None:
+            self.calc_pieces()
 
-        return None
+        for p in self.pieces:
+            cv2.imshow('test', p)
+            cv2.waitKey(time)
+            cv2.destroyWindow('test')
+
