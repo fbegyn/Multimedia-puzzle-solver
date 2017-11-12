@@ -46,24 +46,40 @@ class Puzzle:
     def calc_pieces(self, margin=25, draw=False):
         self.pieces = []
         offset = int(margin/2)
+
+        width, height = self.puzzle.shape[:2]
+
         if draw:
             mask = self.puzzle.copy()
 
         if self.__contours is None:
             self.contours()
 
-        h, w = self.__thresh.shape[:2]
         for i in self.__contours:
             rect = cv2.boundingRect(i)
             x, y, w, h = rect
-            self.pieces.append(self.puzzle[y-offset:y+h+offset,x-offset:x+w+offset].copy())
+            y_start = y-offset
+            x_start = x-offset
+            y_end = y+h+offset
+            x_end = x+w+offset
+            if y_start < 0:
+                y_start = 0
+            if x_start < 0:
+                x_start = 0
+            if y_end > height:
+                y_end = height-1
+            if x_end > width:
+                x_end = width-1
+            self.pieces.append(self.puzzle[y_start:y_end,x_start:x_end].copy())
             if draw:
-                cv2.rectangle(mask, (x-offset, y-offset), (x+w+offset, y+h+offset), (0, 255, 0), 1)
+                cv2.rectangle(mask, (x_start, y_start), (x_end, y_end), (0, 255, 0), 1)
 
         if draw:
             cv2.imshow('test', mask)
             cv2.waitKey()
             cv2.destroyWindow('test')
+
+        print('Found {} puzzle pieces.'.format(len(self.pieces)))
 
     def show_pieces(self, time=500):
         if self.pieces is None:
