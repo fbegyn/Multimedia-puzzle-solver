@@ -29,6 +29,7 @@ class Puzzle:
         self.__contours = contours
         self.__hierarchy = hierarch
 
+
     # Show the contours
     def draw_contours(self, time=0):
         if self.__contours is None:
@@ -56,6 +57,7 @@ class Puzzle:
             self.contours()
 
         for i in self.__contours:
+            _, _, angle = cv2.minAreaRect(i)
             rect = cv2.boundingRect(i)
             x, y, w, h = rect
             y_start = y-offset
@@ -70,7 +72,14 @@ class Puzzle:
                 y_end = height-1
             if x_end > width:
                 x_end = width-1
-            self.pieces.append(self.puzzle[y_start:y_end,x_start:x_end].copy())
+
+            piece = self.puzzle[y_start:y_end,x_start:x_end].copy()
+
+            cols, rows = piece.shape[:2]
+            rotM = cv2.getRotationMatrix2D((cols/2, rows/2), int(angle), 1)
+            piece = cv2.warpAffine(piece, rotM, (cols, rows))
+
+            self.pieces.append(piece)
             if draw:
                 cv2.rectangle(mask, (x_start, y_start), (x_end, y_end), (0, 255, 0), 1)
 
