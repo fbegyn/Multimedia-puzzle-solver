@@ -7,7 +7,10 @@ class Puzzle:
     def __init__(self, path):
         self.puzzle = cv2.imread(path)
         self.gray = cv2.cvtColor(self.puzzle, cv2.COLOR_BGR2GRAY)
-
+        self.dimh=0 #puzzle slicing parameters
+        self.dimv=0
+        self.piece_h = 0 #piece dimentions in pixels
+        self.piece_v = 0
     # show the original puzzle solution
     def show(self, time=0):
         cv2.imshow('Puzzle', self.puzzle)
