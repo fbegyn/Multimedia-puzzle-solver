@@ -33,7 +33,7 @@ class puzzleSolver:
         b = abs(int(pixel1[0])-int(pixel2[0]))
         r = abs(int(pixel1[1])-int(pixel2[1]))
         g = abs(int(pixel1[2])-int(pixel2[2]))
-        return b+r+g
+        return np.sqrt(b**2 + r**2 + g**2)
         
     def compare_rgb_slices(this, slice1, slice2):
         weight = 0
@@ -41,7 +41,7 @@ class puzzleSolver:
         len2 = len(slice2)
         
         if(len1==len2):
-            for i in range(len1):
+            for i in range(0,len1,2):
                 weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
         else:
             return 999#256*3*max(len1, len2)
@@ -74,7 +74,7 @@ class puzzleSolver:
         # e1n2, e1e2, e1s2, e1w2,
         # s1n2, s1e2, s1s2, s1w2,
         # w1n2, w1e2, w1s2, w1w2
-        matches = np.empty([4,4], dtype=np.uint32)
+        matches = np.empty([4,4], dtype=np.uint64)
         for i in range(4):
             for j in range(4):
                 matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
@@ -112,34 +112,36 @@ class puzzleSolver:
         match_south = [999,999]
         match_west = [999,999]
         for i in range(combi_amount):
-            temp = self.min_of_array(matches[i,0])
-            if(temp[1] < mapper[combi[i,0],0,2]):
-                match_north = temp
-                mapper[combi[i,0],0] = [combi[i,1],match_north[0], match_north[1]]
-                #mapper[combi[i,1],2] = [combi[i,0],0, match_north[1]]
             
-            temp  = self.min_of_array(matches[i,1])
-            if(temp[1]< mapper[combi[i,0],1,2]):
-                match_east = temp
-                mapper[combi[i,0],1] = [combi[i,1],match_east[0],match_east[1]]
-                #mapper[combi[i,1],3] = [combi[i,0],1,match_east[1]]
-            
-            temp = self.min_of_array(matches[i,2])
-            if(temp[1]< mapper[combi[i,0],2,2]):
-                match_south = temp
-                mapper[combi[i,0],2] = [combi[i,1],match_south[0],match_south[1]]
-                #mapper[combi[i,1],0] = [combi[i,0],2,match_south[1]]
-            
-            temp = self.min_of_array(matches[i,3])
-            if(temp[1]< mapper[combi[i,0],3,2]):
-                match_west  = temp
-                mapper[combi[i,0],3] = [combi[i,1],match_west[0],match_west[1]]
-                #mapper[combi[i,1],1] = [combi[i,0],3,match_west[1]]
-                #print(mapper[combi[i,0],3], mapper[combi[i,1],1])
+            if(combi[i,0] != combi[i,1]):
+                temp = self.min_of_array(matches[i,0])
+                if(temp[1] < mapper[combi[i,0],0,2]):
+                    match_north = temp
+                    mapper[combi[i,0],0] = [combi[i,1],match_north[0], match_north[1]]
+                    #mapper[combi[i,1],2] = [combi[i,0],0, match_north[1]]
+                
+                temp  = self.min_of_array(matches[i,1])
+                if(temp[1]< mapper[combi[i,0],1,2]):
+                    match_east = temp
+                    mapper[combi[i,0],1] = [combi[i,1],match_east[0],match_east[1]]
+                    #mapper[combi[i,1],3] = [combi[i,0],1,match_east[1]]
+                
+                temp = self.min_of_array(matches[i,2])
+                if(temp[1]< mapper[combi[i,0],2,2]):
+                    match_south = temp
+                    mapper[combi[i,0],2] = [combi[i,1],match_south[0],match_south[1]]
+                    #mapper[combi[i,1],0] = [combi[i,0],2,match_south[1]]
+                
+                temp = self.min_of_array(matches[i,3])
+                if(temp[1]< mapper[combi[i,0],3,2]):
+                    match_west  = temp
+                    mapper[combi[i,0],3] = [combi[i,1],match_west[0],match_west[1]]
+                    #mapper[combi[i,1],1] = [combi[i,0],3,match_west[1]]
+                    #print(mapper[combi[i,0],3], mapper[combi[i,1],1])
         return mapper
 
         
-    def get_best_match_from_mapper(self, mapper):
+    def get_best_match_from_mapper(self, mapper, best_start):
         #TODO get rid of extra border
         dimv = self.puzzle.dimv+1
         dimh = self.puzzle.dimh+1
@@ -149,24 +151,20 @@ class puzzleSolver:
         match[:,0]=-1
         
         #TODO find good startingpoint on left corner
-        """
         index_top_left = 0
-        avg = mapper[0,0,2]*mapper[0,0,2] + mapper[0,3,2]*mapper[0,3,2]
+        avg = mapper[0,0,2]*mapper[0,3,2] - mapper[0,1,2]*mapper[0,2,2]
         for i in range(len(mapper)):
-            temp = mapper[i,0,2]*mapper[i,0,2] + mapper[i,3,2]*mapper[i,3,2]
+            temp = mapper[i,0,2]*mapper[i,3,2]
             if(temp>avg):
                 avg=temp
                 index_top_left=i
-        """
-        match[1,1] = 4#index_top_left
-        
+        match[1,1] = best_start
         #TODO add rotation
-        
         for i in range(2,dimv):
             match[i,1]=   mapper[match[i-1,1],2,0] 
         for i in range(1,dimv):
             for j in range(2,dimh):
-                match[i,j]=   mapper[match[i,j-1],1,0] 
+                match[i,j]=   mapper[match[i,j-1],1,0]
         return match[1:, 1:]
     
     def get_solution_from_best_match(self, best_match):
@@ -181,10 +179,7 @@ class puzzleSolver:
         for i in range(dimh):
             for j in range(dimv):
                 solution[j*piece_v:(j+1)*piece_v, i*piece_h:(i+1)*piece_h] = self.puzzle.pieces[best_match[j,i]]
-
-        cv2.imshow('Solution',solution)
-        cv2.waitKey(0)
-        cv2.destroyWindow('Solution')
+        return solution
         
     
     
