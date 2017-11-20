@@ -33,7 +33,7 @@ class puzzleSolver:
         b = abs(int(pixel1[0])-int(pixel2[0]))
         r = abs(int(pixel1[1])-int(pixel2[1]))
         g = abs(int(pixel1[2])-int(pixel2[2]))
-        return np.sqrt(b**2 + r**2 + g**2)
+        return int(np.sqrt(b**2 + r**2 + g**2))
         
     def compare_rgb_slices(this, slice1, slice2):
         weight = 0
@@ -48,18 +48,18 @@ class puzzleSolver:
             #return 4095
         return weight/len1
         
-    def get_edges_nesw_clockwise(self, piece_number):
-        north = self.puzzle.pieces[piece_number][0,0:]
-        east = self.puzzle.pieces[piece_number][0:,-1]
-        south = self.puzzle.pieces[piece_number][-1,0:][::-1]
-        west = self.puzzle.pieces[piece_number][0:,0][::-1]
+    def get_edges_nesw_clockwise(self, piece_number, step):
+        north = self.puzzle.pieces[piece_number][0,0::step]
+        east = self.puzzle.pieces[piece_number][0::step,-1]
+        south = self.puzzle.pieces[piece_number][-1,0::step][::-1]
+        west = self.puzzle.pieces[piece_number][0::step,0][::-1]
         return [north, east, south, west]
     
-    def get_edges_nesw_counterclockwise(self, piece_number):
-        north = self.puzzle.pieces[piece_number][0,0:][::-1]
-        east = self.puzzle.pieces[piece_number][0:,-1][::-1]
-        south = self.puzzle.pieces[piece_number][-1,0:]
-        west = self.puzzle.pieces[piece_number][0:,0]
+    def get_edges_nesw_counterclockwise(self, piece_number, step):
+        north = self.puzzle.pieces[piece_number][0,0::step][::-1]
+        east = self.puzzle.pieces[piece_number][0::step,-1][::-1]
+        south = self.puzzle.pieces[piece_number][-1,0::step]
+        west = self.puzzle.pieces[piece_number][0::step,0]
         return [north, east, south, west]
     
         
@@ -68,8 +68,9 @@ class puzzleSolver:
         return np.array(list(itertools.product(piece_indexes, repeat=2)))
         
     def compare_two_indexed_pieces(self, index1, index2):
-        slices1 = self.get_edges_nesw_clockwise(index1)
-        slices2 = self.get_edges_nesw_counterclockwise(index2)
+        step = 1
+        slices1 = self.get_edges_nesw_clockwise(index1, step)
+        slices2 = self.get_edges_nesw_counterclockwise(index2, step)
         # n1n2, n1e2, n1s2, n1w2,
         # e1n2, e1e2, e1s2, e1w2,
         # s1n2, s1e2, s1s2, s1w2,
@@ -90,7 +91,7 @@ class puzzleSolver:
     def min_of_array(self, array):
         min_index=0
         min_val=array[0]
-        for i in range(len(array)):
+        for i in range(1,4):
             if(min_val>array[i]):
                 min_index = i
                 min_val = array[i]
@@ -100,72 +101,56 @@ class puzzleSolver:
         combi = self.get_pieces_combo_list()
         combi_amount = len(combi)
         pieces_amount = len(self.puzzle.pieces)
-        matches = np.empty([combi_amount,4,4], dtype=np.uint64)
+        matches = np.zeros([pieces_amount, pieces_amount,4,4], dtype=np.uint64)
         
-        for i in range(combi_amount):
-            matches[i] = self.compare_two_indexed_pieces(combi[i,0], combi[i,1])
-        
+        for (a,b) in combi:
+            if(a != b):
+                matches[a,b] = self.compare_two_indexed_pieces(a, b)
+
         mapper = np.empty([pieces_amount, 4, 3])
-        mapper[:,:,2] = 999
-        match_north = [999,999]
-        match_east = [999,999]
-        match_south = [999,999]
-        match_west = [999,999]
-        for i in range(combi_amount):
+        mapper[:,:,2] = 9999
+        match_north = [9999,9999]
+        match_east = [9999,9999]
+        match_south = [9999,9999]
+        match_west = [9999,9999]
+        for (a,b) in combi:
             
-            if(combi[i,0] != combi[i,1]):
-                temp = self.min_of_array(matches[i,0])
-                if(temp[1] < mapper[combi[i,0],0,2]):
+            if(a != b):
+                temp = self.min_of_array(matches[a,b,0])
+                if(temp[1] < mapper[a,0,2]):
                     match_north = temp
-                    mapper[combi[i,0],0] = [combi[i,1],match_north[0], match_north[1]]
-                    #mapper[combi[i,1],2] = [combi[i,0],0, match_north[1]]
+                    mapper[a,0] = [b,match_north[0], match_north[1]]
                 
-                temp  = self.min_of_array(matches[i,1])
-                if(temp[1]< mapper[combi[i,0],1,2]):
+                temp  = self.min_of_array(matches[a,b,1])
+                if(temp[1]< mapper[a,1,2]):
                     match_east = temp
-                    mapper[combi[i,0],1] = [combi[i,1],match_east[0],match_east[1]]
-                    #mapper[combi[i,1],3] = [combi[i,0],1,match_east[1]]
+                    mapper[a,1] = [b,match_east[0],match_east[1]]
                 
-                temp = self.min_of_array(matches[i,2])
-                if(temp[1]< mapper[combi[i,0],2,2]):
+                temp = self.min_of_array(matches[a,b,2])
+                if(temp[1]< mapper[a,2,2]):
                     match_south = temp
-                    mapper[combi[i,0],2] = [combi[i,1],match_south[0],match_south[1]]
-                    #mapper[combi[i,1],0] = [combi[i,0],2,match_south[1]]
+                    mapper[a,2] = [b,match_south[0],match_south[1]]
                 
-                temp = self.min_of_array(matches[i,3])
-                if(temp[1]< mapper[combi[i,0],3,2]):
+                temp = self.min_of_array(matches[a,b,3])
+                if(temp[1]< mapper[a,3,2]):
                     match_west  = temp
-                    mapper[combi[i,0],3] = [combi[i,1],match_west[0],match_west[1]]
-                    #mapper[combi[i,1],1] = [combi[i,0],3,match_west[1]]
-                    #print(mapper[combi[i,0],3], mapper[combi[i,1],1])
+                    mapper[a,3] = [b,match_west[0],match_west[1]]
         return mapper
 
         
     def get_best_match_from_mapper(self, mapper, best_start):
-        #TODO get rid of extra border
-        dimv = self.puzzle.dimv+1
-        dimh = self.puzzle.dimh+1
-        
-        match = np.zeros([dimv, dimh], dtype=np.int8)
-        match[0,:]=-1
-        match[:,0]=-1
-        
+        dimv = self.puzzle.dimv
+        dimh = self.puzzle.dimh
+        match = np.empty([dimv, dimh], dtype=np.int8)
         #TODO find good startingpoint on left corner
-        index_top_left = 0
-        avg = mapper[0,0,2]*mapper[0,3,2] - mapper[0,1,2]*mapper[0,2,2]
-        for i in range(len(mapper)):
-            temp = mapper[i,0,2]*mapper[i,3,2]
-            if(temp>avg):
-                avg=temp
-                index_top_left=i
-        match[1,1] = best_start
+        match[0,0] = best_start
         #TODO add rotation
-        for i in range(2,dimv):
-            match[i,1]=   mapper[match[i-1,1],2,0] 
         for i in range(1,dimv):
-            for j in range(2,dimh):
+            match[i,0]=   mapper[match[i-1,0],2,0] 
+        for i in range(dimv):
+            for j in range(1,dimh):
                 match[i,j]=   mapper[match[i,j-1],1,0]
-        return match[1:, 1:]
+        return match
     
     def get_solution_from_best_match(self, best_match):
 
