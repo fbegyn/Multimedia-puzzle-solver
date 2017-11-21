@@ -7,6 +7,10 @@ class Puzzle:
             Stores the picture and a graysclae version of it """
         self.puzzle = cv2.imread(path)
         self.gray = cv2.cvtColor(self.puzzle, cv2.COLOR_BGR2GRAY)
+        self.dimh=0 #puzzle slicing parameters
+        self.dimv=0
+        self.piece_h = 0 #piece dimentions in pixels
+        self.piece_v = 0
 
     def show(self, time=0):
         """ Shows the picture itself """
