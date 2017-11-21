@@ -2,7 +2,7 @@ import lib.puzzle as puzzle
 import lib.puzzleSolver as puzzleSolver
 import numpy as np
 import cv2
-import sys
+
 
 def show(img, time=0):
         cv2.imshow('Puzzle',img)
