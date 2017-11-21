@@ -5,11 +5,14 @@ import itertools
 class puzzleSolver:
     # puzzleSolver(puzzles [], type)
     def __init__(self, puzzles):
+        """ Initialisation code for the puzzle solver """
         self.puzzle = puzzles
         self.__orb = cv2.ORB_create()
         self.__bf= cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
+    # TODO: Put this in the puzzle class, doesn't really belong here
     def slice_image(self, dimv, dimh):
+        """ Slice the image into it's seperate puzzle pieces and store them """
         size_x = int(len(self.puzzle.puzzle)/dimv)
         size_y = int(len(self.puzzle.puzzle[0])/dimh)
         self.puzzle.dimv = dimv
@@ -17,21 +20,27 @@ class puzzleSolver:
         self.puzzle.piece_v = size_x
         self.puzzle.piece_h = size_y
         
-        #TODO figure out performace of slices creation
+        # TODO figure out performace of slices creation
         slices = [np.empty([size_x, size_y,3]) for _ in range(dimv*dimh)]
         for i in range(dimh):
             for j in range(dimv):
                 slices[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
-        #write directly into self.puzzle.pieces instead of using a temp variable
+        # write directly into self.puzzle.pieces instead of using a temp variable
         self.puzzle.pieces = slices
     
     def compare_rgb_pixels(pixel1, pixel2):
+        """ Compares 2 pixel based on the RGB value. Comparriosn happens
+            by taking the difference between the values and then calculating
+            the pythogyrian distance between the results """
         b = abs(int(pixel1[0])-int(pixel2[0]))
         r = abs(int(pixel1[1])-int(pixel2[1]))
         g = abs(int(pixel1[2])-int(pixel2[2]))
         return int(np.sqrt(b**2 + r**2 + g**2))
         
     def compare_rgb_slices(this, slice1, slice2):
+        """ Compare 2 image slices based on the compare_rgb_pixels funtion. The
+            comparisson happens by calculating the average result from compare_
+            rgb_pixles """
         weight = 0
         len1 = len(slice1)
         len2 = len(slice2)
@@ -45,6 +54,7 @@ class puzzleSolver:
         return weight/len1
         
     def get_edges_nesw_clockwise(self, piece_number, step):
+        """ Create slices from the image in a clockwise way """
         north = self.puzzle.pieces[piece_number][0,0::step]
         east = self.puzzle.pieces[piece_number][0::step,-1]
         south = self.puzzle.pieces[piece_number][-1,0::step][::-1]
@@ -52,6 +62,7 @@ class puzzleSolver:
         return [north, east, south, west]
     
     def get_edges_nesw_counterclockwise(self, piece_number, step):
+        """ Create slices from the image in counterclockwise manner """
         north = self.puzzle.pieces[piece_number][0,0::step][::-1]
         east = self.puzzle.pieces[piece_number][0::step,-1][::-1]
         south = self.puzzle.pieces[piece_number][-1,0::step]
@@ -59,6 +70,8 @@ class puzzleSolver:
         return [north, east, south, west]
     
     def compare_two_indexed_pieces(self, index1, index2):
+        """ Compare the 4 sides of 2 indexed puzzle pieces and return
+            the matches based on compare_rgb_slices """
         step = 2
         slices1 = self.get_edges_nesw_clockwise(index1, step)
         slices2 = self.get_edges_nesw_counterclockwise(index2, step)
@@ -73,6 +86,7 @@ class puzzleSolver:
         return matches
 
     def min_of_array(self, array):
+        """ returns the minimun value of the array """
         min_index=0
         min_val=array[0]
         for i in [0,1,2,3]:
@@ -87,12 +101,19 @@ class puzzleSolver:
         piece_indexes = np.arange(pieces_amount)
         
         matches = np.empty([pieces_amount, pieces_amount,4,4], dtype=np.uint64)
+
+        # Iterate over the puzzle pieces (2 pieces at a time)
         combi = itertools.combinations(piece_indexes, r=2)
+        # For every 2 pieces
         for (a,b) in combi:
+            # Determine the matching between the 2 pieces
             temp = self.compare_two_indexed_pieces(a, b)
+            # Store the match result on place a, b in the matrix
             matches[a,b] = temp
+            # Logically, if a matches b, b also matches a in the same way
             matches[b,a] = np.transpose(temp)
 
+        :
         product =  itertools.product(piece_indexes, repeat=2)
         mapper = np.empty([pieces_amount, 4, 3])
         mapper[:,:,2] = 9999
