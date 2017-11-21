@@ -9,13 +9,6 @@ class puzzleSolver:
         self.__orb = cv2.ORB_create()
         self.__bf= cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-    def edge_match_grey(self, edge1, edge2):
-        weight = 0
-        max_it = np.min(len(edge1), len(edge1))
-        for i in range(max_it):
-            weight += abs(edge1[i]- edge2[i])
-        return weight
-    
     def slice_image(self, dimv, dimh):
         size_x = int(len(self.puzzle.puzzle)/dimv)
         size_y = int(len(self.puzzle.puzzle[0])/dimh)
@@ -23,10 +16,13 @@ class puzzleSolver:
         self.puzzle.dimh = dimh
         self.puzzle.piece_v = size_x
         self.puzzle.piece_h = size_y
+        
+        #TODO figure out performace of slices creation
         slices = [np.empty([size_x, size_y,3]) for _ in range(dimv*dimh)]
         for i in range(dimh):
             for j in range(dimv):
                 slices[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
+        #write directly into self.puzzle.pieces instead of using a temp variable
         self.puzzle.pieces = slices
     
     def compare_rgb_pixels(pixel1, pixel2):
@@ -41,10 +37,10 @@ class puzzleSolver:
         len2 = len(slice2)
         
         if(len1==len2):
-            for i in range(0,len1,2):
+            for i in range(len1):
                 weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
         else:
-            return 999#256*3*max(len1, len2)
+            return 9999#256*3*max(len1, len2)
             #return 4095
         return weight/len1
         
@@ -62,79 +58,50 @@ class puzzleSolver:
         west = self.puzzle.pieces[piece_number][0::step,0]
         return [north, east, south, west]
     
-        
-    def get_pieces_combo_list(self):
-        piece_indexes = np.arange(len(self.puzzle.pieces))
-        return np.array(list(itertools.product(piece_indexes, repeat=2)))
-        
     def compare_two_indexed_pieces(self, index1, index2):
-        step = 1
+        step = 2
         slices1 = self.get_edges_nesw_clockwise(index1, step)
         slices2 = self.get_edges_nesw_counterclockwise(index2, step)
-        # n1n2, n1e2, n1s2, n1w2,
-        # e1n2, e1e2, e1s2, e1w2,
-        # s1n2, s1e2, s1s2, s1w2,
-        # w1n2, w1e2, w1s2, w1w2
+        # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
+        #  [ e1n2, e1e2, e1s2, e1w2 ]         e1: [ n2, e2, s2, w2 ]
+        #  [ s1n2, s1e2, s1s2, s1w2 ]         s1: [ n2, e2, s2, w2 ]
+        #  [ w1n2, w1e2, w1s2, w1w2 ]]        w1: [ n2, e2, s2, w2 ] ]
         matches = np.empty([4,4], dtype=np.uint64)
-        for i in range(4):
-            for j in range(4):
+        for i in [0,1,2,3]:
+            for j in [0,1,2,3]:
                 matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
         return matches
-    
-    #unused
-    def get_rotation(self, matches_min_index):
-        rot2 = int(matches_min_index%4)
-        rot1 = int((matches_min_index-rot2)/4)
-        
-        return [rot1, rot2]
-    
+
     def min_of_array(self, array):
         min_index=0
         min_val=array[0]
-        for i in range(1,4):
+        for i in [0,1,2,3]:
             if(min_val>array[i]):
                 min_index = i
                 min_val = array[i]
         return [min_index, min_val]
     
     def get_mapper(self):
-        combi = self.get_pieces_combo_list()
-        combi_amount = len(combi)
-        pieces_amount = len(self.puzzle.pieces)
-        matches = np.zeros([pieces_amount, pieces_amount,4,4], dtype=np.uint64)
-        
-        for (a,b) in combi:
-            if(a != b):
-                matches[a,b] = self.compare_two_indexed_pieces(a, b)
 
+        pieces_amount = len(self.puzzle.pieces)
+        piece_indexes = np.arange(pieces_amount)
+        
+        matches = np.empty([pieces_amount, pieces_amount,4,4], dtype=np.uint64)
+        combi = itertools.combinations(piece_indexes, r=2)
+        for (a,b) in combi:
+            temp = self.compare_two_indexed_pieces(a, b)
+            matches[a,b] = temp
+            matches[b,a] = np.transpose(temp)
+
+        product =  itertools.product(piece_indexes, repeat=2)
         mapper = np.empty([pieces_amount, 4, 3])
         mapper[:,:,2] = 9999
-        match_north = [9999,9999]
-        match_east = [9999,9999]
-        match_south = [9999,9999]
-        match_west = [9999,9999]
-        for (a,b) in combi:
-            
+        for (a,b) in product:
             if(a != b):
-                temp = self.min_of_array(matches[a,b,0])
-                if(temp[1] < mapper[a,0,2]):
-                    match_north = temp
-                    mapper[a,0] = [b,match_north[0], match_north[1]]
-                
-                temp  = self.min_of_array(matches[a,b,1])
-                if(temp[1]< mapper[a,1,2]):
-                    match_east = temp
-                    mapper[a,1] = [b,match_east[0],match_east[1]]
-                
-                temp = self.min_of_array(matches[a,b,2])
-                if(temp[1]< mapper[a,2,2]):
-                    match_south = temp
-                    mapper[a,2] = [b,match_south[0],match_south[1]]
-                
-                temp = self.min_of_array(matches[a,b,3])
-                if(temp[1]< mapper[a,3,2]):
-                    match_west  = temp
-                    mapper[a,3] = [b,match_west[0],match_west[1]]
+                for i in [0,1,2,3]:
+                    match = self.min_of_array(matches[a,b,i])
+                    if(match[1] < mapper[a,i,2]):
+                        mapper[a,i] = [b,match[0], match[1]]
         return mapper
 
         
