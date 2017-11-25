@@ -20,11 +20,11 @@ class puzzleSolver:
         self.puzzle.dimh = dimh
         self.puzzle.piece_v = size_x
         self.puzzle.piece_h = size_y
-        self.puzzle.pieces = np.empty([dimv*dimh, size_x, size_y,3], dtype=int)
+        self.puzzle.pieces = np.empty([dimv*dimh, size_x, size_y,3], dtype=np.uint8)
         for i in range(dimh):
             for j in range(dimv):
                 self.puzzle.pieces[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
-        
+                
     def compare_rgb_pixels(pixel1, pixel2):
         """ Compares 2 pixel based on the RGB value. Comparriosn happens
             by taking the difference between the values and then calculating
@@ -32,6 +32,8 @@ class puzzleSolver:
         b = abs(int(pixel1[0])-int(pixel2[0]))
         r = abs(int(pixel1[1])-int(pixel2[1]))
         g = abs(int(pixel1[2])-int(pixel2[2]))
+        #return int(np.sqrt(b**2 +r**2 +g**2))
+        #return int(b+r+g)
         return int(max(b,r,g))
         
     def compare_rgb_slices(this, slice1, slice2):
@@ -49,28 +51,32 @@ class puzzleSolver:
             return 99999999
         return int(weight)
         
-    def get_edges_nesw_clockwise(self, piece_number, step):
+    def get_edges_nesw_clockwise(self, piece_number, stepv, steph):
         """ Create slices from the image in a clockwise way """
-        north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
-        east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::step][::-1].astype(int)
-        west = self.puzzle.pieces[piece_number][0::step,0][::-1].astype(int)
+        north = self.puzzle.pieces[piece_number][0,0::steph].astype(int)
+        east = self.puzzle.pieces[piece_number][0::stepv,-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,0::steph][::-1].astype(int)
+        west = self.puzzle.pieces[piece_number][0::stepv,0][::-1].astype(int)
         return (north, east, south, west)
     
-    def get_edges_nesw_counterclockwise(self, piece_number, step):
+    def get_edges_nesw_counterclockwise(self, piece_number, stepv, steph):
         """ Create slices from the image in counterclockwise manner """
-        north = self.puzzle.pieces[piece_number][0,0::step][::-1].astype(int)
-        east = self.puzzle.pieces[piece_number][0::step,-1][::-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
-        west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
+        north = self.puzzle.pieces[piece_number][0,0::steph][::-1].astype(int)
+        east = self.puzzle.pieces[piece_number][0::stepv,-1][::-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,0::steph].astype(int)
+        west = self.puzzle.pieces[piece_number][0::stepv,0].astype(int)
         return (north, east, south, west)
     
     def compare_two_indexed_pieces(self, index1, index2):
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
-        step = 12
-        slices1 = self.get_edges_nesw_clockwise(index1, step)
-        slices2 = self.get_edges_nesw_counterclockwise(index2, step)
+        #minimum = 12
+        #stepv = int(max(1,np.floor(self.puzzle.dimv/minimum))) # 12
+        #steph = int(max(1,np.floor(self.puzzle.dimh/minimum))) # 12
+        stepv = 1
+        steph = 1
+        slices1 = self.get_edges_nesw_clockwise(index1, stepv, steph)
+        slices2 = self.get_edges_nesw_counterclockwise(index2, stepv, steph)
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
         #  [ e1n2, e1e2, e1s2, e1w2 ]         e1: [ n2, e2, s2, w2 ]
         #  [ s1n2, s1e2, s1s2, s1w2 ]         s1: [ n2, e2, s2, w2 ]
@@ -123,6 +129,7 @@ class puzzleSolver:
                     if(match[1] < mapper[a,i,2]):
                         # then update the mapping of edge 'i' of piece 'a'
                         mapper[a,i] = [b,match[0], match[1]]
+        
         return mapper
         
     def get_best_match_from_mapper(self, mapper):
@@ -178,7 +185,6 @@ class puzzleSolver:
                     pieces_mask[best_piece_up[0]]=0
                 else:
                     weight = 99999999
-
                 if(weight > best_weight):
                     break
             if(weight > best_weight):
@@ -205,6 +211,8 @@ class puzzleSolver:
                     ### STAY AWAY FROM THIS PART ###
                     
                     #pick one of the two( either one works)
+                    
+                    
                     match[i,j] = best_piece_up
                     
                     if(pieces_mask[map_up[0]]):
@@ -216,10 +224,22 @@ class puzzleSolver:
                 if(weight > best_weight):
                     break
 
+            '''
+            solution = self.get_solution_from_best_match(match)
+            s = "%d" %weight
+            cv2.imshow(s,solution)
+            cv2.waitKey(0)
+            cv2.destroyWindow(s)
+            '''
+
+
             #if this match is better then update it
             if(weight < best_weight):
                 best_weight = weight
                 best_match = np.copy(match)
+
+                
+                
         return best_match
     
     def get_solution_from_best_match(self, best_match):
@@ -251,10 +271,8 @@ class puzzleSolver:
                 #rot = 3 => -90 (clockwise)
                 piece = self.puzzle.pieces[adjusted_match[j,i,0]]
                 rot   = adjusted_match[j,i,1]
-                if((rot%2) == 0):
-                    solution[j*piece_v:(j+1)*piece_v, i*piece_h:(i+1)*piece_h] = np.rot90(piece,rot)
-                else:
-                    solution[j*piece_h:(j+1)*piece_h, i*piece_v:(i+1)*piece_v] = np.rot90(piece,rot)
+                solution[j*piece_v:(j+1)*piece_v, i*piece_h:(i+1)*piece_h] = np.rot90(piece,rot)
+  
         return solution
         
     
