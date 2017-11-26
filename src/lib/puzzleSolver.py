@@ -20,7 +20,7 @@ class puzzleSolver:
         self.puzzle.dimh = dimh
         self.puzzle.piece_v = size_x
         self.puzzle.piece_h = size_y
-        self.puzzle.pieces = np.empty([dimv*dimh, size_x, size_y,3], dtype=np.uint8)
+        self.puzzle.pieces = np.zeros([dimv*dimh, size_x, size_y,3], dtype=np.uint8)
         for i in range(dimh):
             for j in range(dimv):
                 self.puzzle.pieces[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
@@ -29,12 +29,13 @@ class puzzleSolver:
         """ Compares 2 pixel based on the RGB value. Comparriosn happens
             by taking the difference between the values and then calculating
             the pythogyrian distance between the results """
-        b = abs(int(pixel1[0])-int(pixel2[0]))
-        r = abs(int(pixel1[1])-int(pixel2[1]))
-        g = abs(int(pixel1[2])-int(pixel2[2]))
+        b = abs(pixel1[0]-pixel2[0])
+        r = abs(pixel1[1]-pixel2[1])
+        g = abs(pixel1[2]-pixel2[2])
+
         #return int(np.sqrt(b**2 +r**2 +g**2))
-        #return int(b+r+g)
-        return int(max(b,r,g))
+        return b+r+g #snelst
+        #return int(max(b,r,g))
         
     def compare_rgb_slices(this, slice1, slice2):
         """ Compare 2 image slices based on the compare_rgb_pixels funtion. The
@@ -81,7 +82,7 @@ class puzzleSolver:
         #  [ e1n2, e1e2, e1s2, e1w2 ]         e1: [ n2, e2, s2, w2 ]
         #  [ s1n2, s1e2, s1s2, s1w2 ]         s1: [ n2, e2, s2, w2 ]
         #  [ w1n2, w1e2, w1s2, w1w2 ]]        w1: [ n2, e2, s2, w2 ] ]
-        matches = np.empty([4,4], dtype=int)
+        matches = np.zeros([4,4], dtype=int)
         for i in (0,1,2,3):
             for j in (0,1,2,3):
                 matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
@@ -101,7 +102,7 @@ class puzzleSolver:
 
         pieces_amount = len(self.puzzle.pieces)
         piece_indexes = np.arange(pieces_amount)
-        matches = np.empty([pieces_amount, pieces_amount,4,4], dtype=int)
+        matches = np.zeros([pieces_amount, pieces_amount,4,4], dtype=int)
         # generate all posible piece combinations excluding permutation
         combi = itertools.combinations(piece_indexes, r=2)
         # calculate de matching weight of each edge
@@ -116,7 +117,7 @@ class puzzleSolver:
             
         # generate all posible piece combinations including permutation
         product =  itertools.product(piece_indexes, repeat=2)
-        mapper = np.empty([pieces_amount, 4, 3], dtype=int)
+        mapper = np.zeros([pieces_amount, 4, 3], dtype=int)
         mapper[:,:,2] = 99999999
         for (a,b) in product:
             #skip matching of piece with its self
@@ -129,16 +130,15 @@ class puzzleSolver:
                     if(match[1] < mapper[a,i,2]):
                         # then update the mapping of edge 'i' of piece 'a'
                         mapper[a,i] = [b,match[0], match[1]]
-        
         return mapper
         
     def get_best_match_from_mapper(self, mapper):
         dimv = self.puzzle.dimv
         dimh = self.puzzle.dimh
-        match = np.empty([dimv, dimh,2], dtype=int)
+        match = np.zeros([dimv, dimh,2], dtype=int)
         piece_indexes = np.arange(len(self.puzzle.pieces))
         all_seeds = itertools.product(piece_indexes,(0,1,2,3))
-        best_match = np.empty_like(match)
+        best_match = np.zeros_like(match)
         best_weight=99999999
         for (a,b) in all_seeds:
             weight = 0
@@ -162,7 +162,7 @@ class puzzleSolver:
                     pieces_mask[best_piece_left[0]]=0
                 else:
                     #if piece was already used then this match is invalid
-                    weight = 99999999
+                    weight += 99999
                     #break out of this loop
                     break
                 if(weight > best_weight):
@@ -184,7 +184,7 @@ class puzzleSolver:
                 if(pieces_mask[best_piece_up[0]]):
                     pieces_mask[best_piece_up[0]]=0
                 else:
-                    weight = 99999999
+                    weight += 99999
                 if(weight > best_weight):
                     break
             if(weight > best_weight):
@@ -218,7 +218,7 @@ class puzzleSolver:
                     if(pieces_mask[map_up[0]]):
                         pieces_mask[map_up[0]]=0
                     else:
-                        weight = 99999999
+                        weight += 99999
                     # add up both weights
                     weight = weight + weight_left + weight_up
                 if(weight > best_weight):
@@ -227,7 +227,7 @@ class puzzleSolver:
             '''
             solution = self.get_solution_from_best_match(match)
             s = "%d" %weight
-            cv2.imshow(s,solution)
+            cv2.imshow(s,cv2.resize(solution,None,fx=5, fy=5, interpolation = cv2.INTER_CUBIC))
             cv2.waitKey(0)
             cv2.destroyWindow(s)
             '''
@@ -237,8 +237,6 @@ class puzzleSolver:
             if(weight < best_weight):
                 best_weight = weight
                 best_match = np.copy(match)
-
-                
                 
         return best_match
     

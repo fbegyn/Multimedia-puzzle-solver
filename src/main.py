@@ -1,3 +1,6 @@
+
+
+
 import lib.puzzle as puzzle
 import lib.puzzleSolver as puzzleSolver
 import numpy as np
@@ -20,9 +23,34 @@ for path in sorted(glob.glob(folder + '*.png')):
 
 
 def compare_rgb_pixels(pixel1, pixel2):
-        b = abs(int(pixel1[0])-int(pixel2[0]))
-        r = abs(int(pixel1[1])-int(pixel2[1]))
-        g = abs(int(pixel1[2])-int(pixel2[2]))
+    
+        LL = pixel1[0]
+        LR = pixel1[1]
+        RL = pixel2[0]
+        RR = pixel2[1]
+
+        distR = LR + LR - LL
+        distL = RL + RL - RR
+        #print("distR", distR)
+        #print("distL", distL)
+
+        b = abs(int(RL[0])-int(distR[0]))
+        r = abs(int(RL[1])-int(distR[1]))
+        g = abs(int(RL[2])-int(distR[2]))
+        
+        
+        #b = abs(int(LR[0])-int(RL[0]))
+        #r = abs(int(LR[1])-int(RL[1]))
+        #g = abs(int(LR[2])-int(RL[2]))
+
+
+
+
+    
+        #b = abs(int(pixel1[1][0])-int(pixel2[0][0])) + 0.5*abs(int(pixel1[0][0])-int(pixel2[1][0]))
+        #r = abs(int(pixel1[1][1])-int(pixel2[0][1])) + 0.5*abs(int(pixel1[0][1])-int(pixel2[1][1]))
+        #g = abs(int(pixel1[1][2])-int(pixel2[0][2])) + 0.5*abs(int(pixel1[0][2])-int(pixel2[1][2]))
+        
         #return int(np.sqrt(b**2 +r**2 +g**2))
         return int(b+r+g)
         #return int(max(b,r,g))
@@ -46,9 +74,15 @@ cc = np.rot90(cc,0)
 #show(np.hstack([aa, bb]), "bb")
 #show(np.hstack([aa, cc]), "cc")
 
-aaa = aa[0::,-1].astype(int)
-bbb = bb[0::,0].astype(int)
-ccc = cc[0::,0].astype(int)
+alen = len(aa)
+blen = len(bb)
+clen = len(cc)
+
+
+aaa = aa[0::,alen-2:alen].astype(int)
+bbb = bb[0::,0:2].astype(int)
+ccc = cc[0::,0:2].astype(int)
+print(aaa)
 
 sum1 = 0
 sum2 = 0
@@ -61,28 +95,25 @@ for i in range(len(aaa)):
     sum2 += temp2
 
 print("res: ", "bbb: ",sum1,"ccc: ", sum2)
-
-
-
-
 '''
+
+
+#[puzzle_list[36]]
+
 avg_time = 0
 time = timer()
+#for i in range(10):
 for p in puzzle_list:
-    solver = puzzleSolver.puzzleSolver(p[0])
-    solver.slice_image(p[1],p[2])
-    mapper  = solver.get_mapper()
-    match = solver.get_best_match_from_mapper(mapper)
-
-
-    
-    solution = solver.get_solution_from_best_match(match)
-    
-    #comment out show command for accurat timing info.
-    show(solution, title=p[3])
+        solver = puzzleSolver.puzzleSolver(p[0])
+        solver.slice_image(p[1],p[2])
+        mapper  = solver.get_mapper()
+        match = solver.get_best_match_from_mapper(mapper)
+        solution = solver.get_solution_from_best_match(match)
+        
+        #comment out show command for accurat timing info.
+        show(solution, title=p[3])
 
 timing = timer() - time
-avg_time +=timing
 print("Total execution time:")
 print(np.ceil(timing*1000)/1000, "sec")
 
