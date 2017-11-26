@@ -52,32 +52,28 @@ class puzzleSolver:
             return 99999999
         return int(weight)
         
-    def get_edges_nesw_clockwise(self, piece_number, stepv, steph):
+    def get_edges_nesw_clockwise(self, piece_number, step):
         """ Create slices from the image in a clockwise way """
-        north = self.puzzle.pieces[piece_number][0,0::steph].astype(int)
-        east = self.puzzle.pieces[piece_number][0::stepv,-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::steph][::-1].astype(int)
-        west = self.puzzle.pieces[piece_number][0::stepv,0][::-1].astype(int)
+        north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
+        east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,0::step][::-1].astype(int)
+        west = self.puzzle.pieces[piece_number][0::step,0][::-1].astype(int)
         return (north, east, south, west)
     
-    def get_edges_nesw_counterclockwise(self, piece_number, stepv, steph):
+    def get_edges_nesw_counterclockwise(self, piece_number, step):
         """ Create slices from the image in counterclockwise manner """
-        north = self.puzzle.pieces[piece_number][0,0::steph][::-1].astype(int)
-        east = self.puzzle.pieces[piece_number][0::stepv,-1][::-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::steph].astype(int)
-        west = self.puzzle.pieces[piece_number][0::stepv,0].astype(int)
+        north = self.puzzle.pieces[piece_number][0,0::step][::-1].astype(int)
+        east = self.puzzle.pieces[piece_number][0::step,-1][::-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
+        west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
         return (north, east, south, west)
     
     def compare_two_indexed_pieces(self, index1, index2):
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
-        #minimum = 12
-        #stepv = int(max(1,np.floor(self.puzzle.dimv/minimum))) # 12
-        #steph = int(max(1,np.floor(self.puzzle.dimh/minimum))) # 12
-        stepv = 1
-        steph = 1
-        slices1 = self.get_edges_nesw_clockwise(index1, stepv, steph)
-        slices2 = self.get_edges_nesw_counterclockwise(index2, stepv, steph)
+        step = 1
+        slices1 = self.get_edges_nesw_clockwise(index1, step)
+        slices2 = self.get_edges_nesw_counterclockwise(index2, step)
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
         #  [ e1n2, e1e2, e1s2, e1w2 ]         e1: [ n2, e2, s2, w2 ]
         #  [ s1n2, s1e2, s1s2, s1w2 ]         s1: [ n2, e2, s2, w2 ]
