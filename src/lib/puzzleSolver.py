@@ -56,14 +56,14 @@ class puzzleSolver:
         """ Create slices from the image in a clockwise way """
         north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
         east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::step][::-1].astype(int)
-        west = self.puzzle.pieces[piece_number][0::step,0][::-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,-1::-step].astype(int)
+        west = self.puzzle.pieces[piece_number][-1::-step,0].astype(int)
         return (north, east, south, west)
     
     def get_edges_nesw_counterclockwise(self, piece_number, step):
         """ Create slices from the image in counterclockwise manner """
-        north = self.puzzle.pieces[piece_number][0,0::step][::-1].astype(int)
-        east = self.puzzle.pieces[piece_number][0::step,-1][::-1].astype(int)
+        north = self.puzzle.pieces[piece_number][0,-1::-step].astype(int)
+        east = self.puzzle.pieces[piece_number][-1::-step,-1].astype(int)
         south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
         west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
         return (north, east, south, west)
@@ -71,7 +71,7 @@ class puzzleSolver:
     def compare_two_indexed_pieces(self, index1, index2):
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
-        step = 1
+        step = 3
         slices1 = self.get_edges_nesw_clockwise(index1, step)
         slices2 = self.get_edges_nesw_counterclockwise(index2, step)
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
@@ -88,7 +88,7 @@ class puzzleSolver:
         """ returns the minimun value of the array """
         min_index=0
         min_val=array[0]
-        for i in (0,1,2,3):
+        for i in (1,2,3):
             if(min_val>array[i]):
                 min_index = i
                 min_val = array[i]
