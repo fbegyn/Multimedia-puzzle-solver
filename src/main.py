@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 import glob
 from timeit import default_timer as timer
+import matplotlib.pyplot as plt
 
 def show(img, title='Puzzle', time=0):
     cv2.imshow(title,img)
@@ -93,10 +94,13 @@ print("res: ", "bbb: ",sum1,"ccc: ", sum2)
 '''
 #[puzzle_list[36]]
 
+
+
+'''
 avg_time = 0
 time = timer()
 #for i in range(10):
-for p in puzzle_list:
+for p in [puzzle_list[36]] :
         solver = puzzleSolver.puzzleSolver(p[0])
         solver.slice_image(p[1],p[2])
         mapper  = solver.get_mapper()
@@ -107,8 +111,114 @@ for p in puzzle_list:
 timing = timer() - time
 print("Total execution time:")
 print(np.ceil(timing*1000)/1000, "sec")
+'''
 
 
+def compare_rgb_pixels2(pixel1, pixel2):
+        b = abs(pixel1[0]-pixel2[0])
+        r = abs(pixel1[1]-pixel2[1])
+        g = abs(pixel1[2]-pixel2[2]) 
+        #return int(np.sqrt(b**2 +r**2 +g**2))
+        return int(b+r+g)
+        #return int(max(b,r,g))
+
+
+
+
+
+
+a = 1
+b = 8
+c= 13
+
+solver = puzzleSolver.puzzleSolver(puzzle_list[36][0])
+solver.slice_image(5,5)
+aa = solver.puzzle.pieces[a]
+bb = solver.puzzle.pieces[b]
+cc = solver.puzzle.pieces[c]
+
+aa = np.rot90(aa,0)
+bb = np.rot90(bb,1)
+cc = np.rot90(cc,0)
+#show(np.hstack([aa, bb]), "bb")
+#show(np.hstack([aa, cc]), "cc")
+
+alen = len(aa)
+blen = len(bb)
+clen = len(cc)
+
+aaa = aa[0::,-1].astype(int)
+bbb = bb[0::,0].astype(int)
+ccc = cc[0::,0].astype(int)
+
+def magnitude_spec(spec):
+    magnitude_spectrum = np.log(np.abs(spec)+1)
+    magnitude_spectrum += np.min(magnitude_spectrum) 
+    magnitude_spectrum *= 255./np.max(magnitude_spectrum)
+    return magnitude_spectrum
+
+def fft_tf(image):
+    fbeeld = np.fft.fft2(image) 
+    fshift = np.fft.fftshift(fbeeld) 
+    return fshift
+
+
+
+afftb = np.fft.fft(aaa[:,0])
+afftb = np.fft.fftshift(afftb)
+afftb = np.log(np.abs(afftb)+1)
+afftb -= np.min(afftb)
+afftb *= 255./np.max(afftb)
+print(afftb)
+
+bfftb = np.fft.fft(bbb[:,0])
+bfftb = np.fft.fftshift(bfftb)
+bfftb = np.log(np.abs(bfftb)+1)
+bfftb -= np.min(bfftb)
+bfftb *= 255./np.max(bfftb)
+print(bfftb)
+
+cfftb = np.fft.fft(ccc[:,0])
+cfftb = np.fft.fftshift(cfftb)
+cfftb = np.log(np.abs(cfftb)+1)
+cfftb -= np.min(cfftb)
+cfftb *= 255./np.max(cfftb)
+print(cfftb)
+
+
+plt.plot(afftb)
+plt.plot(bfftb)
+plt.show()
+
+plt.plot(afftb)
+plt.plot(cfftb)
+plt.show()
+
+telab = np.sum(abs(afftb - bfftb))
+
+print(abs(afftb - bfftb))
+telac = np.sum(abs(afftb - cfftb))
+
+print("res: ", "bbb: ",telab,"ccc: ", telac)
+
+
+
+
+
+
+'''
+sum1 = 0
+sum2 = 0
+for i in range(len(aaa)):
+    temp1 = compare_rgb_pixels2(aaa[i],bbb[i])
+    temp2 = compare_rgb_pixels2(aaa[i],ccc[i])
+    #print("bb: ",temp1, "cc: ",temp2)
+    sum1 += temp1
+    sum2 += temp2
+
+print("res: ", "bbb: ",sum1,"ccc: ", sum2)
+
+'''
 
 
 
