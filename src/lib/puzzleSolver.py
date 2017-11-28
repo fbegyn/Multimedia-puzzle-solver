@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import itertools
 from timeit import default_timer as timer
+import sys
 
 class puzzleSolver:
     # puzzleSolver(puzzles [], type)
@@ -71,7 +72,7 @@ class puzzleSolver:
     def compare_two_indexed_pieces(self, index1, index2):
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
-        step = 3
+        step = 6
         slices1 = self.get_edges_nesw_clockwise(index1, step)
         slices2 = self.get_edges_nesw_counterclockwise(index2, step)
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
@@ -135,7 +136,7 @@ class puzzleSolver:
         piece_indexes = np.arange(len(self.puzzle.pieces))
         all_seeds = itertools.product(piece_indexes,(0,1,2,3))
         best_match = np.zeros_like(match)
-        best_weight=99999999
+        best_weight=sys.maxsize
         for (a,b) in all_seeds:
             weight = 0
             match[0,0] =[a,b]
@@ -208,8 +209,10 @@ class puzzleSolver:
                     
                     #pick one of the two( either one works)
                     
-                    
-                    match[i,j] = best_piece_up
+                    if(weight_left<weight_up):
+                        match[i,j] = best_piece_left
+                    else:
+                        match[i,j] = best_piece_up
                     
                     if(pieces_mask[map_up[0]]):
                         pieces_mask[map_up[0]]=0

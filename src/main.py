@@ -16,11 +16,12 @@ def show(img, title='Puzzle', time=0):
 puzzle_list= []
 folder = "../puzzles/Tiles/tiles_rotated/"
 for path in sorted(glob.glob(folder + '*.png')):
-    filename = path.split("/")[4]
+    #print(path)
+    filename = path.split("\\")[1]
     dim = filename.split("_")[2].split("x")
     puzzle_list.append([puzzle.Puzzle(path), int(dim[0]), int(dim[1]), filename])
 
-'''
+
 def compare_rgb_pixels(pixel1, pixel2):
         
         LL = pixel1[0]
@@ -38,10 +39,13 @@ def compare_rgb_pixels(pixel1, pixel2):
         #b = abs(int(pixel1[1][0])-int(pixel2[0][0])) + 0.5*abs(int(pixel1[0][0])-int(pixel2[1][0]))
         #r = abs(int(pixel1[1][1])-int(pixel2[0][1])) + 0.5*abs(int(pixel1[0][1])-int(pixel2[1][1]))
         #g = abs(int(pixel1[1][2])-int(pixel2[0][2])) + 0.5*abs(int(pixel1[0][2])-int(pixel2[1][2])
+        
+        
+        
         #return int(np.sqrt(b**2 +r**2 +g**2))
         return int(b+r+g)
         #return int(max(b,r,g))
-
+'''
 a = 1
 b = 8
 c= 13
@@ -55,8 +59,8 @@ cc = solver.puzzle.pieces[c]
 aa = np.rot90(aa,0)
 bb = np.rot90(bb,1)
 cc = np.rot90(cc,0)
-#show(np.hstack([aa, bb]), "bb")
-#show(np.hstack([aa, cc]), "cc")
+show(np.hstack([aa, bb]), "bb")
+show(np.hstack([aa, cc]), "cc")
 
 alen = len(aa)
 blen = len(bb)
