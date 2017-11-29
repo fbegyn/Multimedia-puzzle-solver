@@ -1,0 +1,65 @@
+ 
+Extra edge gewicht berekening geprobeerd.
+
+for i in (0,1,2,3):
+    for j in (0,1,2,3):
+        aaa1 = np.gradient(slices1[i][:,0]) #b
+        aaa2 = np.gradient(slices1[i][:,1]) #r
+        aaa3 = np.gradient(slices1[i][:,2]) #g
+        bbb1 = np.gradient(slices2[j][:,0]) #b
+        bbb2 = np.gradient(slices2[j][:,1]) #r
+        bbb3 = np.gradient(slices2[j][:,2]) #g
+        aaa = np.array([aaa1,aaa2,aaa3]).T
+        bbb = np.array([bbb1,bbb2,bbb3]).T
+        matches[i,j] = self.compare_rgb_slices(aaa, bbb)
+
+for i in (0,1,2,3):
+    for j in (0,1,2,3):
+    	aaa1 = np.convolve(slices1[i][:,0],[1,-1]) #b
+    	aaa2 = np.convolve(slices1[i][:,1],[1,-1]) #r
+    	aaa3 = np.convolve(slices1[i][:,2],[1,-1]) #g
+    	bbb1 = np.convolve(slices2[j][:,0],[1,-1]) #b
+    	bbb2 = np.convolve(slices2[j][:,1],[1,-1]) #r
+    	bbb3 = np.convolve(slices2[j][:,2],[1,-1]) #g
+    	aaa = np.array([aaa1,aaa2,aaa3]).T
+    	bbb = np.array([bbb1,bbb2,bbb3]).T
+        matches[i,j] = self.compare_rgb_slices(aaa, bbb)
+
+for i in (0,1,2,3):
+    for j in (0,1,2,3):
+        aaa1 = np.convolve(slices1[i][:,0],[1,0,-1])
+        aaa2 = np.convolve(slices1[i][:,1],[1,0,-1])
+        aaa3 = np.convolve(slices1[i][:,2],[1,0,-1])
+        bbb1 = np.convolve(slices2[j][:,0],[1,0,-1])
+        bbb2 = np.convolve(slices2[j][:,1],[1,0,-1])
+        bbb3 = np.convolve(slices2[j][:,2],[1,0,-1])
+        aaa = np.array([aaa1,aaa2,aaa3]).T
+        bbb = np.array([bbb1,bbb2,bbb3]).T
+        matches[i,j] = self.compare_rgb_slices(aaa, bbb)
+
+for i in (0,1,2,3):
+    for j in (0,1,2,3):
+        kernel = [2,6,1,0,-1,-6,-2] + [1,2,4,6,4,2,1]
+        aaa1 = np.convolve(slices1[i][:,0],kernel)
+        aaa2 = np.convolve(slices1[i][:,1],kernel)
+        aaa3 = np.convolve(slices1[i][:,2],kernel)
+        bbb1 = np.convolve(slices2[j][:,0],kernel)
+        bbb2 = np.convolve(slices2[j][:,1],kernel)
+        bbb3 = np.convolve(slices2[j][:,2],kernel)
+        aaa = np.array([aaa1,aaa2,aaa3]).T
+        bbb = np.array([bbb1,bbb2,bbb3]).T
+    matches[i,j] = self.compare_rgb_slices(aaa,bbb)
+
+
+
+alle 3 geven een slechtere resultaat, het idee erachter was dat de
+afgeleide in goed gematchte sterk op elkaar zouden moeten lijken.
+Als er een lijn over twee puzzelstuken gaat dan zou de afgerleide
+de randen van deze lijn terug geven. De randen van deze lijn zouden
+bijgevold ongeveer op dezelefde hoogte moeten bevinden.
+
+
+
+
+
+

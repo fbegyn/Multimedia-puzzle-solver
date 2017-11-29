@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 from timeit import default_timer as timer
 import sys
+from scipy import spatial
 
 class puzzleSolver:
     # puzzleSolver(puzzles [], type)
@@ -33,10 +34,18 @@ class puzzleSolver:
         b = abs(pixel1[0]-pixel2[0])
         r = abs(pixel1[1]-pixel2[1])
         g = abs(pixel1[2]-pixel2[2])
-
-        #return int(np.sqrt(b**2 +r**2 +g**2))
         return b+r+g #snelst
-        #return int(max(b,r,g))
+
+    def compare_rgb_pixels2(LL, LR, RL, RR): #pixle1: LL en LR, pixle2: RL, RR
+        #L = Links, R=Rechts
+        destR = LR + (LR - LL) #calculated extrapolated values
+        destL = RL + (RL - RR)
+        #compare extrapolated values with given values
+        b = abs(RL[0]-destR[0]) + abs(LR[0]-destL[0]) + abs(RL[0]-LR[0])
+        r = abs(RL[1]-destR[1]) + abs(LR[1]-destL[1]) + abs(RL[1]-LR[1])
+        g = abs(RL[2]-destR[2]) + abs(LR[2]-destL[2]) + abs(RL[2]-LR[2])
+        return b+r+g 
+
         
     def compare_rgb_slices(this, slice1, slice2):
         """ Compare 2 image slices based on the compare_rgb_pixels funtion. The
@@ -48,25 +57,62 @@ class puzzleSolver:
         
         if(len1==len2):
             for i in range(len1):
-                weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
+                if(1):
+                    #original
+                    weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
+                else:
+                    #extrapolation
+                    weight += puzzleSolver.compare_rgb_pixels2(slice1[i][0], slice1[i][1], slice2[i][1], slice2[i][0])
         else:
             return 99999999
         return int(weight)
         
     def get_edges_nesw_clockwise(self, piece_number, step):
         """ Create slices from the image in a clockwise way """
-        north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
-        east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,-1::-step].astype(int)
-        west = self.puzzle.pieces[piece_number][-1::-step,0].astype(int)
+        if(1):
+            #original methode
+            north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
+            east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
+            south = self.puzzle.pieces[piece_number][-1,-1::-step].astype(int)
+            west = self.puzzle.pieces[piece_number][-1::-step,0].astype(int)
+        else:
+            #slicing with width of 2 
+            north = self.puzzle.pieces[piece_number][0:2,0::step].astype(int)
+            east  = self.puzzle.pieces[piece_number][0::step,-2:].astype(int)
+            south = self.puzzle.pieces[piece_number][-2:,-1::-step].astype(int)
+            west  = self.puzzle.pieces[piece_number][-1::-step,0:2].astype(int)
+    
+            #transpose equlises the array dimentions, so they have the same format
+            north = np.transpose(north,axes=(1, 0, 2))
+            south = np.transpose(south,axes=(1, 0, 2))
+            
+            #swaps coloums so inner and outer slice have consistent indexing
+            #x[:,0] = inner side    x[:,1] is outer edge exposed to other 
+            # outer edges of other puzzles
+            north[:,:] = north[:,::-1]
+            west[:,:] = west[:,::-1]
+        
         return (north, east, south, west)
     
     def get_edges_nesw_counterclockwise(self, piece_number, step):
         """ Create slices from the image in counterclockwise manner """
-        north = self.puzzle.pieces[piece_number][0,-1::-step].astype(int)
-        east = self.puzzle.pieces[piece_number][-1::-step,-1].astype(int)
-        south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
-        west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
+        if(1):
+            north = self.puzzle.pieces[piece_number][0,-1::-step].astype(int)
+            east = self.puzzle.pieces[piece_number][-1::-step,-1].astype(int)
+            south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
+            west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
+        else:
+            north = self.puzzle.pieces[piece_number][0:2,-1::-step].astype(int)
+            east  = self.puzzle.pieces[piece_number][-1::-step,-2:].astype(int)
+            south = self.puzzle.pieces[piece_number][-2:,0::step].astype(int)
+            west  = self.puzzle.pieces[piece_number][0::step,0:2].astype(int)
+    
+            north = np.transpose(north,axes=(1, 0, 2))
+            south = np.transpose(south,axes=(1, 0, 2))
+            
+            north[:,:] = north[:,::-1]
+            west[:,:] = west[:,::-1]
+        
         return (north, east, south, west)
     
     def compare_two_indexed_pieces(self, index1, index2):
@@ -82,7 +128,20 @@ class puzzleSolver:
         matches = np.zeros([4,4], dtype=int)
         for i in (0,1,2,3):
             for j in (0,1,2,3):
-                matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
+                if(1):
+                    #original
+                    matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
+                else:
+                    #cosinus distamce methode
+                    if(len(slices1[i][:,1])!= len(slices2[j][:,1])):
+                        matches[i,j] = 9999999
+                    else:
+                        matches[i,j] = 0
+                        #with original slicing
+                        matches[i,j] += int(10000*spatial.distance.cosine(slices1[i][:,0], slices2[j][:,0]))
+                        matches[i,j] += int(10000*spatial.distance.cosine(slices1[i][:,1], slices2[j][:,1]))
+                        matches[i,j] += int(10000*spatial.distance.cosine(slices1[i][:,2], slices2[j][:,2]))
+                    
         return matches
 
     def min_of_array(self, array):
