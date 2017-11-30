@@ -15,10 +15,10 @@ def show(img, title='Puzzle', time=0):
     cv2.destroyWindow(title)
 
 puzzle_list= []
-folder = "../puzzles/Tiles/tiles_rotated/"
+folder = "../puzzles/Tiles/tiles_scrambled/"
 for path in sorted(glob.glob(folder + '*.png')):
     #print(path)
-    filename = path.split("/")[4]
+    filename = path.split("\\")[1]
     dim = filename.split("_")[2].split("x")
     puzzle_list.append([puzzle.Puzzle(path), int(dim[0]), int(dim[1]), filename])
 
@@ -97,17 +97,21 @@ print("res: ", "bbb: ",sum1,"ccc: ", sum2)
 avg_time = 0
 time = timer()
 #for i in range(10):
-for p in puzzle_list:
+for p in [puzzle_list[36]]:
         solver = puzzleSolver.puzzleSolver(p[0])
-        solver.slice_image(p[1],p[2])
+        #solver.slice_image(p[1],p[2])
+        solver.puzzle.calc_pieces()
+        solver.puzzle.show_pieces(time=0)
+        
         mapper  = solver.get_mapper()
         match = solver.get_best_match_from_mapper(mapper)
         solution = solver.get_solution_from_best_match(match)
         #comment out show command for accurat timing info.
-        #show(solution, title=p[3])
+        show(solution, title=p[3])
 timing = timer() - time
 print("Total execution time:")
 print(np.ceil(timing*1000)/1000, "sec")
+
 
 
 '''
