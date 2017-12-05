@@ -1,0 +1,10 @@
+Het programma wordt geschreven in Python, wat zich heel sterk de gewoonte heeft naar \textit{class} georienteerd programmeren.
+ Er is de keuze gemaakt om voornamenlijk 2 \textit{classen} te ontwikkelen:
+\begin{itemize}
+    \item Puzzle: Puzzle is de klasse die alles een puzzel zal opslaan. Hierin wordt ten eerste de volledige puzzel opgeslagen, samen met varianten van de afbeelding die men nodig zou hebben voor bewerkingen.
+            Deze klasse is ook verantwoordelijk voor het halen van de puzzelstukjes uit de input voor de puzzel, deze stukjes worden daarna ook opgeslagen in deze klasse.
+    \item Puzzlesolver: Puzzlesolver is de klasse die de effectieve algoritmes bezit voor het oplossen van de puzzel. Hierin bevindt de \textit{matching} en \textit{solving} functie.
+\end{itemize}
+
+Het idee achter deze klassen is dat men voor elke puzzel een Puzzle object aanmaakt, die men dan gewoon kan meegeven aan 1 Puzzlesolver. Dit zorgt ervoor dat onze klassen gemakkelijk
+ge\"{i}ntegreed kunnen zorden in andere programmas

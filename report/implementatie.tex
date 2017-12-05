@@ -1,0 +1,11 @@
+\subsection{Puzzle klasse}
+
+De meeste code in de puzzle klasse is niet geheel complex. De instantiatie van de klasse gebeurt simpelweg door een pad naar een afbeelding mee te geven aan de standaard constructor
+\texttt{Puzzle(some/path/to/image)}. Dit slaat de afbeelding op in de klasse, alsook een grijsschaal versie (want veel OpenCV functies maken gebruik van grijsschaal varianten).
+
+Er is nog een basisfunctie zoals \texttt{show()} die de afbeelding weergeeft en een paar functies met betrekking to de contouren waarvan de voornaamste \texttt{contours()} is, die de contouren 
+in de hoofdafbeelding bepaalt en opslaat in de klasse voor later gebruik.
+
+De meest complexe functie is de functie die de puzzelstukjes uitsnijdt, \texttt{calc\_pieces(margin, draw)}
+
+\lstinputlisting[language=Python,firstline=64,lastline=151]{../src/lib/puzzle.py}

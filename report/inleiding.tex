@@ -1,0 +1,14 @@
+Het project voor multimedia dit jaar betreft hem het chrijven van een programma dat in staat is om op basis van een afbeelding van puzzelstukjes, puzzel op te lossen.
+Het oplossen van puzzel brengt bepaalde uitdagingen met zich mee, men moet zich hierop toeleggen en benadrukken waarop men zal focussen bij het oplossen van een de puzzel.
+\begin{itemize}
+    \item Soort puzzel: Er zijn veel soorten puzzels en elk type brengt zo zijn uitdagingen en voordelen met zich mee
+    \item Matching: Dit hangt deels af van het type, maar binnen elk type zijn er ook meerdere manieren om de puzzelstukjes te matchen (vorm, pixel, knn-match, ...)
+    \item Snelheid: Ligt de nadruk op snelheid of op schaalbaaarheid. Het is heel lastig van een algoitme te schrijven dat zowel snel als schaalbaar werkt. Puzzels oplosen is namenlijk een NP-compleet probleem.
+\end{itemize}
+
+Wij hebben gekozen om te kijken voor een goede manier te vinden om de puzzelstukjes uit te knippen en een zo groot mogelijk aantal puzzels op te lossen. met een voorkeur voor de tiles.
+De tiles hebben een voorkeur gekregen vanwege het nut van ons project op verdere videobewerking. Met jigsaw zou men kunnen matching op basis van de vorm, maar een algoritme ontwikkeld voor tiles
+kan heel makkelijk aangepast worden om op afbeeldingen in het algemeen toegpast worden.
+
+Het project wordt net zoals de labos in Python geschreven, we hebben echter wel gekozen voor Python3.6. dit is vanwege de voorkeur voor de syntax in die python versie. Er wordt gebruik gemaakt van de meest recente versie van OpenCV, versie 3.3.0
+voor de bewerkingen en manipulaties op afbeeldingen. Daarnaast wordt er voor array operaties te versimpelen ook nog Numpy 1.13.3 gebrukt.
