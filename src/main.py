@@ -20,7 +20,7 @@ for path in sorted(glob.glob(folder + '*.png')):
     #print(path)
     filename = path.split("/")[4]
     dim = filename.split("_")[2].split("x")
-    print(filename.split(".")[0].split("_")[3])
+    #print(filename.split(".")[0].split("_")[3])
     puzzle_list.append([puzzle.Puzzle(path), int(dim[0]), int(dim[1]), filename])
 
 
@@ -42,7 +42,11 @@ print(np.ceil(timing*1000)/1000, "sec")
 
 
 '''
+nr = 2
 
+solver = puzzleSolver.puzzleSolver(puzzle_list[nr][0])
+solver.slice_image(puzzle_list[nr][1],puzzle_list[nr][2])
+solver.puzzle.write_pieces()
 
 
 

@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import time
+import os
 
 class Puzzle:
     def __init__(self, path):
@@ -179,4 +181,16 @@ class Puzzle:
             cv2.imshow('test', p)
             cv2.waitKey(time)
             cv2.destroyWindow('test')
+            
+    def write_pieces(self):
+        if self.pieces is None:
+            self.calc_pieces()
+        stamp = int(time.time())
+        os.mkdir("output/%s" %stamp)
+            
+        for i in range(len(self.pieces)):
+            string = "output/%s/%d.png" %(stamp, i)
+            #string = "%d.png" %i
+            print(string)
+            cv2.imwrite(string,self.pieces[i])
 
