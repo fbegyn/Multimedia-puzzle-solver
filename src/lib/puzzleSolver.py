@@ -103,9 +103,9 @@ class puzzleSolver:
         if(len1==len2):
             for i in range(len1):
                 #original
-                #weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
+                weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
                 #extrapolation
-                weight += puzzleSolver.compare_rgb_pixels2(slice1[i][0], slice1[i][1], slice2[i][1], slice2[i][0])
+                #weight += puzzleSolver.compare_rgb_pixels2(slice1[i][0], slice1[i][1], slice2[i][1], slice2[i][0])
         else:
             return 99999999
         return int(weight)
@@ -157,11 +157,11 @@ class puzzleSolver:
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
         step = 1
-        #slices1 = self.get_edges_nesw_clockwise(index1, step)
-        #slices2 = self.get_edges_nesw_counterclockwise(index2, step)
+        slices1 = self.get_edges_nesw_clockwise(index1, step)
+        slices2 = self.get_edges_nesw_counterclockwise(index2, step)
         
-        slices1 = self.get_edges_nesw_clockwise2(index1, step)
-        slices2 = self.get_edges_nesw_counterclockwise2(index2, step)        
+        #slices1 = self.get_edges_nesw_clockwise2(index1, step)
+        #slices2 = self.get_edges_nesw_counterclockwise2(index2, step)        
         
         
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]

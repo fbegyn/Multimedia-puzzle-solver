@@ -24,30 +24,31 @@ for path in sorted(glob.glob(folder + '*.png')):
     puzzle_list.append([puzzle.Puzzle(path), int(dim[0]), int(dim[1]), filename])
 
 
-#[puzzle_list[36]]
-'''
+
+
 time = timer()
-for i in range(10):
-    for p in puzzle_list:
+#for i in range(10):
+for p in puzzle_list:
         solver = puzzleSolver.puzzleSolver(p[0])
         solver.slice_image(p[1],p[2])
         mapper  = solver.get_mapper()
         match = solver.get_best_match_from_mapper(mapper)
         solution = solver.get_solution_from_best_match(match)
         #comment out show command for accurat timing info.
-        #show(solution, title=p[3])
+        show(solution, title=p[3])
 timing = (timer() - time)/10
 print("Total execution time:")
 print(np.ceil(timing*1000)/1000, "sec")
 
 
-'''
+
+"""
 nr = 2
 
 solver = puzzleSolver.puzzleSolver(puzzle_list[nr][0])
 solver.slice_image(puzzle_list[nr][1],puzzle_list[nr][2])
 solver.puzzle.write_pieces()
-
+"""
 
 
 
