@@ -11,6 +11,8 @@ class Puzzle:
         self.dimv=0
         self.piece_h = 0 #piece dimentions in pixels
         self.piece_v = 0
+        self.pieces = None
+        self.__contours = None
 
     def show(self, time=0):
         """ Shows the picture itself """
@@ -120,17 +122,17 @@ class Puzzle:
         # needed for the rotation). We rerun the above code on each seperate piece so we get a better
         # puzzle piece to work with with less black borders in it.
         for piece, gray in zip(self.pieces, self.pieces_gr):
-            self.__thresh = np.asarray((gray>0)*255,dtype= np.uint8)
+            self.__thresh = np.asarray((gray>(50))*255,dtype= np.uint8)
             _, contours, hierarch = cv2.findContours(self.__thresh.copy(), cv2.RETR_EXTERNAL,
                                                       cv2.CHAIN_APPROX_NONE)
             for i in contours:
                 _, _, angle = cv2.minAreaRect(i)
                 rect = cv2.boundingRect(i)
                 x, y, w, h = rect
-                y_start = y+1
-                x_start = x+1
-                y_end = y+h-1
-                x_end = x+w-1
+                y_start = y+3
+                x_start = x+3
+                y_end = y+h-3
+                x_end = x+w-3
                 if y_start < 0:
                     y_start = 0
                 if x_start < 0:
@@ -144,11 +146,13 @@ class Puzzle:
 
                 cols, rows = p.shape[:2]
                 # Make sure that we don't have some weird anomalies that get threated as a puzzle piece
-                if cols < 10 or rows < 10:
+                if cols < 60 or rows < 60:
                     continue
-                rotM = cv2.getRotationMatrix2D((cols/2, rows/2), int(angle), 1)
+                rotM = cv2.getRotationMatrix2D((cols/2, rows/2), angle, 1)
                 p = cv2.warpAffine(p, rotM, (cols, rows))
                 self.__new_pieces.append(p)
+
+                
 
         if draw:
             cv2.imshow('test', mask)

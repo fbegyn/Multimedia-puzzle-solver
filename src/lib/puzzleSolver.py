@@ -1,14 +1,17 @@
-import cv2
 import numpy as np
 import itertools
+from timeit import default_timer as timer
+import sys
+from scipy import spatial
+from scipy.ndimage import filters
 
 class puzzleSolver:
     # puzzleSolver(puzzles [], type)
     def __init__(self, puzzles):
         """ Initialisation code for the puzzle solver """
         self.puzzle = puzzles
-        self.__orb = cv2.ORB_create()
-        self.__bf= cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        #self.__orb = cv2.ORB_create()
+        #self.__bf= cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     # TODO: Put this in the puzzle class, doesn't really belong here
     def slice_image(self, dimv, dimh):
@@ -19,24 +22,76 @@ class puzzleSolver:
         self.puzzle.dimh = dimh
         self.puzzle.piece_v = size_x
         self.puzzle.piece_h = size_y
-        
-        # TODO figure out performace of slices creation
-        slices = [np.empty([size_x, size_y,3]) for _ in range(dimv*dimh)]
+        self.puzzle.pieces = np.zeros([dimv*dimh, size_x, size_y,3], dtype=np.uint8)
         for i in range(dimh):
             for j in range(dimv):
-                slices[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
-        # write directly into self.puzzle.pieces instead of using a temp variable
-        self.puzzle.pieces = slices
+                self.puzzle.pieces[i*dimv+j] = self.puzzle.puzzle[j*size_x:(j+1)*size_x, i*size_y:(i+1)*size_y]
     
+    
+    def get_edges_nesw_clockwise(self, piece_number, step):
+        """ Create slices from the image in a clockwise way """
+        #original methode
+        north = self.puzzle.pieces[piece_number][0,0::step].astype(int)
+        east = self.puzzle.pieces[piece_number][0::step,-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,-1::-step].astype(int)
+        west = self.puzzle.pieces[piece_number][-1::-step,0].astype(int)
+        return (north, east, south, west)
+    
+    def get_edges_nesw_counterclockwise(self, piece_number, step):
+        """ Create slices from the image in counterclockwise manner """
+        north = self.puzzle.pieces[piece_number][0,-1::-step].astype(int)
+        east = self.puzzle.pieces[piece_number][-1::-step,-1].astype(int)
+        south = self.puzzle.pieces[piece_number][-1,0::step].astype(int)
+        west = self.puzzle.pieces[piece_number][0::step,0].astype(int)
+        return (north, east, south, west)
+    
+    def get_edges_nesw_clockwise2(self, piece_number, step):
+        #slicing with width of 2 
+        north = self.puzzle.pieces[piece_number][0:2,0::step].astype(int)
+        east  = self.puzzle.pieces[piece_number][0::step,-2:].astype(int)
+        south = self.puzzle.pieces[piece_number][-2:,-1::-step].astype(int)
+        west  = self.puzzle.pieces[piece_number][-1::-step,0:2].astype(int)
+        #transpose equlises the array dimentions, so they have the same format
+        north = np.transpose(north,axes=(1, 0, 2))
+        south = np.transpose(south,axes=(1, 0, 2))
+        #swaps coloums so inner and outer slice have consistent indexing
+        #x[:,0] = inner side    x[:,1] is outer edge exposed to other 
+        # outer edges of other puzzles
+        north[:,:] = north[:,::-1]
+        west[:,:] = west[:,::-1]
+        return (north, east, south, west)
+
+    def get_edges_nesw_counterclockwise2(self, piece_number, step):
+        north = self.puzzle.pieces[piece_number][0:2,-1::-step].astype(int)
+        east  = self.puzzle.pieces[piece_number][-1::-step,-2:].astype(int)
+        south = self.puzzle.pieces[piece_number][-2:,0::step].astype(int)
+        west  = self.puzzle.pieces[piece_number][0::step,0:2].astype(int)
+        north = np.transpose(north,axes=(1, 0, 2))
+        south = np.transpose(south,axes=(1, 0, 2))
+        north[:,:] = north[:,::-1]
+        west[:,:] = west[:,::-1]
+        return (north, east, south, west)
+    
+
     def compare_rgb_pixels(pixel1, pixel2):
         """ Compares 2 pixel based on the RGB value. Comparriosn happens
             by taking the difference between the values and then calculating
             the pythogyrian distance between the results """
-        b = abs(int(pixel1[0])-int(pixel2[0]))
-        r = abs(int(pixel1[1])-int(pixel2[1]))
-        g = abs(int(pixel1[2])-int(pixel2[2]))
-        return int(np.sqrt(b**2 + r**2 + g**2))
-        
+        b = abs(pixel1[0]-pixel2[0])
+        r = abs(pixel1[1]-pixel2[1])
+        g = abs(pixel1[2]-pixel2[2])
+        return b+r+g #snelst
+
+    def compare_rgb_pixels2(LL, LR, RL, RR): #pixle1: LL en LR, pixle2: RL, RR
+        #L = Links, R=Rechts
+        destR = LR + (LR - LL) #calculated extrapolated values
+        destL = RL + (RL - RR)
+        #compare extrapolated values with given values
+        b = abs(RL[0]-destR[0]) + abs(LR[0]-destL[0]) + abs(RL[0]-LR[0])
+        r = abs(RL[1]-destR[1]) + abs(LR[1]-destL[1]) + abs(RL[1]-LR[1])
+        g = abs(RL[2]-destR[2]) + abs(LR[2]-destL[2]) + abs(RL[2]-LR[2])
+        return b+r+g 
+       
     def compare_rgb_slices(this, slice1, slice2):
         """ Compare 2 image slices based on the compare_rgb_pixels funtion. The
             comparisson happens by calculating the average result from compare_
@@ -47,64 +102,104 @@ class puzzleSolver:
         
         if(len1==len2):
             for i in range(len1):
-                weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
+                #original
+                #weight += puzzleSolver.compare_rgb_pixels(slice1[i], slice2[i])
+                #extrapolation
+                weight += puzzleSolver.compare_rgb_pixels2(slice1[i][0], slice1[i][1], slice2[i][1], slice2[i][0])
         else:
-            return 9999#256*3*max(len1, len2)
-            #return 4095
-        return weight/len1
+            return 99999999
+        return int(weight)
         
-    def get_edges_nesw_clockwise(self, piece_number, step):
-        """ Create slices from the image in a clockwise way """
-        north = self.puzzle.pieces[piece_number][0,0::step]
-        east = self.puzzle.pieces[piece_number][0::step,-1]
-        south = self.puzzle.pieces[piece_number][-1,0::step][::-1]
-        west = self.puzzle.pieces[piece_number][0::step,0][::-1]
-        return [north, east, south, west]
+
     
-    def get_edges_nesw_counterclockwise(self, piece_number, step):
-        """ Create slices from the image in counterclockwise manner """
-        north = self.puzzle.pieces[piece_number][0,0::step][::-1]
-        east = self.puzzle.pieces[piece_number][0::step,-1][::-1]
-        south = self.puzzle.pieces[piece_number][-1,0::step]
-        west = self.puzzle.pieces[piece_number][0::step,0]
-        return [north, east, south, west]
+    def compare_rgb_slices2(this, slice1, slice2):
+        
+        if(len(slice1)!=len(slice2)):
+            return 99999999
+        
+        b = spatial.distance.hamming(slice1[:,0], slice2[:,0])
+        r = spatial.distance.hamming(slice1[:,1], slice2[:,1])
+        g = spatial.distance.hamming(slice1[:,2], slice2[:,2])
+        if (np.isnan(b)):
+            b = 3.1415
+        if (np.isnan(r)):
+            r = 3.1415
+        if (np.isnan(g)):
+            g = 3.1415
+        #for canberra, chebyshev, cityblock, minkowski, sqeuclidean
+        #return int(b) + int(r) + int(g)
+        #for braycurtis, correlation, cosine, euclidean, hamming
+        return int(10000*b) + int(10000*r) + int(10000*g)
+    
+    
+    def compare_rgb_slices3(self, slice1, slice2):
+        #Highpass filter
+        #size = [0,12,0]
+        #kernel_1 = filters.gaussian_filter1d(size,1, order=1)
+        #kernel_2 = filters.gaussian_filter1d(size,2)
+        kernel = [1,1,1]# kernel_1 + kernel_2
+        b1 = np.convolve(slice1[:,0],kernel)
+        r1 = np.convolve(slice1[:,1],kernel)
+        g1 = np.convolve(slice1[:,2],kernel)
+        b2 = np.convolve(slice2[:,0],kernel)
+        r2 = np.convolve(slice2[:,1],kernel)
+        g2 = np.convolve(slice2[:,2],kernel)
+        aaa = np.array([b1,r1,g1]).T
+        bbb = np.array([b2,r2,g2]).T
+        return self.compare_rgb_slices(aaa,bbb)
+    
+    
+    
+    
+    
     
     def compare_two_indexed_pieces(self, index1, index2):
         """ Compare the 4 sides of 2 indexed puzzle pieces and return
             the matches based on compare_rgb_slices """
-        step = 2
-        slices1 = self.get_edges_nesw_clockwise(index1, step)
-        slices2 = self.get_edges_nesw_counterclockwise(index2, step)
+        step = 1
+        #slices1 = self.get_edges_nesw_clockwise(index1, step)
+        #slices2 = self.get_edges_nesw_counterclockwise(index2, step)
+        
+        slices1 = self.get_edges_nesw_clockwise2(index1, step)
+        slices2 = self.get_edges_nesw_counterclockwise2(index2, step)        
+        
+        
         # [[ n1n2, n1e2, n1s2, n1w2 ]       [ n1: [ n2, e2, s2, w2 ]
         #  [ e1n2, e1e2, e1s2, e1w2 ]         e1: [ n2, e2, s2, w2 ]
         #  [ s1n2, s1e2, s1s2, s1w2 ]         s1: [ n2, e2, s2, w2 ]
         #  [ w1n2, w1e2, w1s2, w1w2 ]]        w1: [ n2, e2, s2, w2 ] ]
-        matches = np.empty([4,4], dtype=np.uint64)
-        for i in [0,1,2,3]:
-            for j in [0,1,2,3]:
+        matches = np.zeros([4,4], dtype=int)
+        
+        for i in (0,1,2,3):
+            for j in (0,1,2,3):
+                #original
                 matches[i,j] = self.compare_rgb_slices(slices1[i], slices2[j])
+                #with scipy.spatial.distance...
+                #matches[i,j] = self.compare_rgb_slices2(slices1[i], slices2[j])
+                #Highpass filter
+                #matches[i,j] = self.compare_rgb_slices3(slices1[i], slices2[j])
+
         return matches
 
     def min_of_array(self, array):
         """ returns the minimun value of the array """
         min_index=0
         min_val=array[0]
-        for i in [0,1,2,3]:
+        for i in (1,2,3):
             if(min_val>array[i]):
                 min_index = i
                 min_val = array[i]
-        return [min_index, min_val]
+        return (min_index, min_val)
     
     def get_mapper(self):
 
         pieces_amount = len(self.puzzle.pieces)
         piece_indexes = np.arange(pieces_amount)
-        
-        matches = np.empty([pieces_amount, pieces_amount,4,4], dtype=np.uint64)
-
-        # Iterate over the puzzle pieces (2 pieces at a time)
+        matches = np.zeros([pieces_amount, pieces_amount,4,4], dtype=int)
+        # generate all posible piece combinations excluding permutation
         combi = itertools.combinations(piece_indexes, r=2)
-        # For every 2 pieces
+        # calculate de matching weight of each edge
+        # for each combination of pieces
         for (a,b) in combi:
             # Determine the matching between the 2 pieces
             temp = self.compare_two_indexed_pieces(a, b)
@@ -112,46 +207,166 @@ class puzzleSolver:
             matches[a,b] = temp
             # Logically, if a matches b, b also matches a in the same way
             matches[b,a] = np.transpose(temp)
-
-        :
+        # generate all posible piece combinations including permutation
         product =  itertools.product(piece_indexes, repeat=2)
-        mapper = np.empty([pieces_amount, 4, 3])
-        mapper[:,:,2] = 9999
+        mapper = np.zeros([pieces_amount, 4, 3], dtype=int)
+        mapper[:,:,2] = 99999999
         for (a,b) in product:
+            #skip matching of piece with its self
             if(a != b):
-                for i in [0,1,2,3]:
+                #for each edge: 0 = north, 1 = east, 2 = south, 3 = west
+                for i in (0,1,2,3):
+                    #find for piece 'a' with edge 'i' the best edge of piece 'b'
                     match = self.min_of_array(matches[a,b,i])
+                    #if this piece is a better matchthen the previus
                     if(match[1] < mapper[a,i,2]):
+                        # then update the mapping of edge 'i' of piece 'a'
                         mapper[a,i] = [b,match[0], match[1]]
         return mapper
-
         
-    def get_best_match_from_mapper(self, mapper, best_start):
+    def get_best_match_from_mapper(self, mapper):
         dimv = self.puzzle.dimv
         dimh = self.puzzle.dimh
-        match = np.empty([dimv, dimh], dtype=np.int8)
-        #TODO find good startingpoint on left corner
-        match[0,0] = best_start
-        #TODO add rotation
-        for i in range(1,dimv):
-            match[i,0]=   mapper[match[i-1,0],2,0] 
-        for i in range(dimv):
+        match = np.zeros([dimv, dimh,2], dtype=int)
+        piece_indexes = np.arange(len(self.puzzle.pieces))
+        all_seeds = itertools.product(piece_indexes,(0,1,2,3))
+        best_match = np.zeros_like(match)
+        best_weight=sys.maxsize
+        for (a,b) in all_seeds:
+            weight = 0
+            match[0,0] =[a,b]
+            # keep track what puzzle pieces have been used already.
+            pieces_mask = np.ones(len(self.puzzle.pieces))
+            pieces_mask[a]=0
+            #fill up upper horizontal row
             for j in range(1,dimh):
-                match[i,j]=   mapper[match[i,j-1],1,0]
-        return match
+                parrent_left = match[0,j-1]
+                #parrent_left[1] is a parrent's edge that faces upward.
+                #(parrent_left[1]+1)%4 is parrent's right edge.
+                best_piece_left = mapper[parrent_left[0],(parrent_left[1]+1)%4]
+                #best_piece_left[1] is this piece's left edge
+                #(best_piece_left[1]+1)%4 is this piece's edge that faces upward
+                match[0,j] = [best_piece_left[0] , (best_piece_left[1]+1)%4]
+                #best_piece_left[2] is the weight of the current match
+                weight = weight + best_piece_left[2]
+                #best_piece_left[0] is this piece's number
+                if(pieces_mask[best_piece_left[0]]):
+                    pieces_mask[best_piece_left[0]]=0
+                else:
+                    #if piece was already used then this match is invalid
+                    weight += 99999
+                    #break out of this loop
+                    break
+                if(weight > best_weight):
+                    #if after this match the wieght has exeeded a previos better
+                    #match then there is no point anymore in continuing
+                    break
+            if(weight > best_weight):
+                #continue wil skip the rest of the outer loop and continue to
+                #the next iteration (next a and b)
+                continue
+            #fill up leftmost culom 
+            for i in range(1,dimv):
+                parrent_up = match[i-1,0]
+                #when going dawnward then the bottom edge is the top edge+2 with
+                #top edge beeing parrent_up[1]
+                best_piece_up = mapper[parrent_up[0],(parrent_up[1]+2)%4]
+                match[i,0] = best_piece_up[0:2]
+                weight = weight + best_piece_up[2]
+                if(pieces_mask[best_piece_up[0]]):
+                    pieces_mask[best_piece_up[0]]=0
+                else:
+                    weight += 99999
+                if(weight > best_weight):
+                    break
+            if(weight > best_weight):
+                continue
+            #fill up the rest of the match by looking at bothe the top and left
+            #neighbour
+            for i in range(1,dimv):
+                for j in range(1,dimh):
+                    parrent_up = match[i-1,j]
+                    map_up = mapper[parrent_up[0],(parrent_up[1]+2)%4]
+                    best_piece_up = map_up[0:2]
+                    
+                    parent_left = match[i,j-1]
+                    map_left = mapper[parent_left[0],(parent_left[1]+1)%4]
+                    best_piece_left = [map_left[0] , (map_left[1]+1)%4][0:2]
+                   
+                    weight_up = map_up[2]
+                    weight_left = map_left[2]
+                    
+                    ### STAY AWAY FROM THIS PART ###                    
+                    if(best_piece_up[0] != best_piece_left[0]):
+                        weight += 99999 #Do not alter anything here
+                        #I don't know how this works but it does what is needed
+                    ### STAY AWAY FROM THIS PART ###
+                    
+                    #pick one of the two( either one works)
+                    
+                    if(weight_left<weight_up):
+                        match[i,j] = best_piece_left
+                    else:
+                        match[i,j] = best_piece_up
+                    
+                    if(pieces_mask[map_up[0]]):
+                        pieces_mask[map_up[0]]=0
+                    else:
+                        weight += 99999
+                    # add up both weights
+                    weight = weight + weight_left + weight_up
+                if(weight > best_weight):
+                    break
+
+            '''
+            solution = self.get_solution_from_best_match(match)
+            s = "%d" %weight
+            cv2.imshow(s,cv2.resize(solution,None,fx=5, fy=5, interpolation = cv2.INTER_CUBIC))
+            cv2.waitKey(0)
+            cv2.destroyWindow(s)
+            '''
+
+
+            #if this match is better then update it
+            if(weight < best_weight):
+                best_weight = weight
+                best_match = np.copy(match)
+                
+        return best_match
     
     def get_solution_from_best_match(self, best_match):
-
         dimv = self.puzzle.dimv
         dimh = self.puzzle.dimh
         piece_v = self.puzzle.piece_v
         piece_h = self.puzzle.piece_h
-        
-        solution = np.zeros([piece_v * dimv, piece_h * dimh,3], dtype = np.uint8)
- 
-        for i in range(dimh):
-            for j in range(dimv):
-                solution[j*piece_v:(j+1)*piece_v, i*piece_h:(i+1)*piece_h] = self.puzzle.pieces[best_match[j,i]]
+        #rotate the best_match in order to minimise image rotations
+        #find the most frequent occuring top edge
+        destribution = np.zeros(4);
+        for rot in (best_match[:,:,1].flatten()):
+            destribution[rot] +=1
+        #print(best_match[:,:,1].flatten(),destribution )
+        most_rot = np.argmax(destribution)
+        #print(most_rot)
+        #rotate the match matrix and update the top edge so that the north edge
+        #becomes the most frequnet top edge. When a north edge is on top 
+        #no rotation is needed. This also somhow fixes the issue of guessing
+        #the verticval and horizontal dimentions of a rectangular image.
+        adjusted_match = np.rot90(best_match,-most_rot)
+        adjusted_match[:,:,1] = (adjusted_match[:,:,1]-most_rot)%4
+        #TODO put solution into self.puzzle.solution
+        solution = np.empty([piece_v * dimv, piece_h * dimh,3], dtype = np.uint8)
+        try:
+            for i in range(dimh):
+                for j in range(dimv):
+                    #rot = 0 => no rotation
+                    #rot = 1 => +90 (counter-clockwise)
+                    #rot = 2 => 180
+                    #rot = 3 => -90 (clockwise)
+                    piece = self.puzzle.pieces[adjusted_match[j,i,0]]
+                    rot   = adjusted_match[j,i,1]
+                    solution[j*piece_v:(j+1)*piece_v, i*piece_h:(i+1)*piece_h] = np.rot90(piece,rot)
+        except:
+            pass
         return solution
         
     
