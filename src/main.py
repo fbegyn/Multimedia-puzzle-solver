@@ -18,7 +18,8 @@ puzzle_list= []
 folder = "../puzzles/Tiles/tiles_rotated/"
 for path in sorted(glob.glob(folder + '*.png')):
     #print(path)
-    filename = path.split("/")[4]
+    #filename = path.split("/")[4]      #for linux
+    filename = path.split("\\")[1]      #for windows
     dim = filename.split("_")[2].split("x")
     #print(filename.split(".")[0].split("_")[3])
     puzzle_list.append([puzzle.Puzzle(path), int(dim[0]), int(dim[1]), filename])
