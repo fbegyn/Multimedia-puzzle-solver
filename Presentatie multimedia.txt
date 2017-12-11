@@ -1,0 +1,510 @@
+Multimedia:
+Puzzle matching
+
+  Groep 15: Francis Begyn
+								  Youri Vassiliev
+
+
+Project
+Uitdagingen
+Snelheid
+Schaalbaarheid
+Correctheid
+
+
+Puzzel oplossen op basis van afbeelding
+2
+Speaker: Francis
+Voor dit project hebben we de uitdaging gekregen om een programma te schrijven dat puzzels kan oplossen op basis van een afbeelding. Hierbij zijn er bepaalde uitdagingen
+Snelheid: hoe snel kan men een puzzel oplossen? Minuten, seconden, uren? Vb Cornell puzzle solving algoritme doet 24h over jigsaw van 10k stukjes
+Schaalbaarheid: welek grote van puzzles kunnen opgelost worden? Niet alleen grote, is de oplosser schaalbaar (rekening houdenend emet de groeiende complexiteit)
+Correctheid: hoe vaak en hoe goed kan het programma de puzzel oplossen
+
+Methodiek
+Implementatie
+
+
+
+Implementeren van geteste methodes
+Planning
+Bepalen welke van de uitdaging er prioritair is.
+Keuze:
+Prio1: snelheid
+Prio2: correctheid
+Prio3: schaalbaarheid
+
+Structuur van het programma
+Onderzoek
+
+Opzoekwerk naar wat de beste methoden
+
+
+Bibliotheken gebruiken?
+Zelf schrijven?
+3
+Speaker: Francis
+We hebben in een paar stappen gewerkt. Eerst en vooral was er de planning. Vooral nar wat en hoe. Hierbij hebben we bekeken wat onze prioriteit zou zijn bij het schrijven en onderzoeken van het programma. We hebben besloten om eerst en vooral naar snelheid te kijken. Specifiek is vooral omdat als men een snel algoritme kan schrijven, men gemakkelijker de andere aspecten kan compenseren (sneller algoritme -> meer combinaties in dezelfde tijd)
+
+Daarna zijn we begonnen met het onderzoek naar goede algoritmes en implemtaties. Hierin is ook de structuur vna het programma vastgelegd. Ook werd beslist om een groot gedeelt ezelf te schrijven en enkel bibliotheken te gebruiken voor dingen die buiten de scope van het project liggen (het had geen nut om zelf te beginnen schrijven aan afbeelding lees functies, maar het gebruik van bvb graaf bibliotheken en krachtige mathematische bibliotheken zo bvb wel een beslissing kunnen zijn).
+
+Daarna is de laatste stap het implementeren van alle methodes en technieken.
+
+Structuur programma
+2 klassen
+4
+Puzzle
+Puzzel opslaan
+Puzzelstukjes opslaan
+Elementaire bewerking van afbeelding
+Puzzlesolver
+Oplossen van puzzel
+Samenstellen van oplossing
+Matchingalgoritmes
+Speaker: Francis
+Er is besloten om het programma onder te verdelen in 2 klassen. Ten eerste een klasse die de input bijhoudt en er basisoperaties op uitvoerd, opslaan van grijsschaal, weergeven van de puzzle zelf en het bereken van de puzzlestukken.
+
+De 2 de klasse is een klasse die op zich in staat voor het oplossen van de puzzels. Hierin zitten de matching algoritmes, de mapper (hetgeen dat de oplossingen produceerd)
+
+Implementatie: (Francis)
+Uittesten
+Coderen
+Refecteren
+Implementatie bestaat uit meerdere stappen
+Coderen: uitvoeren van idee
+Uittesten: zoveel mogelijk cases testen
+Reflecteren: wat ging er fout? Hoe kan dit beter?
+5
+Speaker: Francis
+In theorie kinkt het concept van ‘Do it right first’ heel aanlokkelijk, in realiteit is het schrijven van code vaak een visceuse cirkel. De eerste keer implenteer je een idee, dan test je het programma met zoveel mogelijk bedenkelijke cases en wanneer het niet werkt dan moet men gaan zoeken waar het fout kan gaan en dan corrigeren. Als het goed werkt, dan kan men in beschouwing gaan nemen of er geen mogelijkheid is tot aanpassingen en verbeteringen.
+
+Pre-processing: shuffled/rotated tiles
+6
+size_x
+size_y
+0
+2
+3
+  j   	* size_x :
+ (j+1)	* size_x
+1
+  i      	* size_y :
+ (i+1)	* size_y
+dimh
+dimv
+tiles_rotated_2x2_02.png
+
+dimv
+dimh
+Size_x = 
+dimv / len(v)  
+Size_y = 
+dimh / len(h)  
+Speaker: Francis
+Rotated puzzels worden in puzzelstukken geknipt met behulp van numpy slicing. De horizontale dimensie dimh en de verticale dimentie dimv worden uit de filename gelezen. Op basis daarvan wordt bepaald hoeveel pixels elk puzzelstukje bestaat. Vervolgense worden ze in een dubbele for-lus gesliced volgens de afmetingen.
+
+Verschillende iteraties van algoritme geweest
+7
+Huidig: algoritme van Suzuki (cv.findContours)
+Werkt nu voor tiles, niet zo voor jigsaw stukjes
+Pre-processing: scrambled pieces
+Speaker: Francis
+Er zijn verschillende iteraties geweest van de manier waarop we de scambled pieces verzamelen. Er was eerst gekeken naar de jigsaw puzzels hoe men daar de de vormen kan bepalen. Uiteindelijk is besloten om te focussen op de tiles. Daar werd eerst simpelweg gekeken naar wanneer een pizel verschilde van de achtergrond. Daarmee kan bepaald worden waar men vierkanten kon uitsnijden. Hierop zijn bepaald emethode gezocht om de hoek te bepalen.Bij het onderzoek hiervan is ontdekt de de ingebouwde methode findContours, dat het algoritme van Suzuki gebruikt, in staat is om de hoek terug te geven.
+
+Op basis van de hoek en contour kunnen we het stuk uitsnijden en 
+
+afstands bepalling
+8
+slice 1
+slice 2
+slice 1
+slice 2
+Gewicht  = 	 abs( b1 - b2 )
+	       + abs( r1  - r2 )
+	       + abs( g1 - g2 )
+...
+...
+...
+...
+afstand tussenslice 1 en slice 2
+Speaker: Youri
+
+edge slicing: conventie 
+9
+W
+S
+E
+N
+W
+S
+E
+N
+richting
+index
+North
+0
+East
+1
+South
+2
+West
+3
+Speaker: Youri
+
+edge slicing: richting
+10
+(0,0)
+(0,-1)
+(-1,0)
+(-1,-1)
+OK
+fout
+Speaker: Youri
+
+edge slicing: richting
+11
+[-1 , -1::-step]
+[-1::-step,0]
+[0,-1::-step]
+[-1::-step,-1]
+Speaker: Youri
+
+Look-up-table opstellen
+12
+N E S W
+
+N E S W
+
+puzzelstuk 1
+puzzelstuk 2
+0
+1
+2
+3
+0
+x
+1
+x
+2
+x
+3
+x
+N1
+E1
+S1
+W1
+N2
+99
+99
+E2
+99
+99
+S2
+99
+99
+W2
+99
+99
+N2
+E2
+S2
+W2
+N1
+99
+99
+E1
+99
+99
+S1
+99
+99
+W1
+99
+99
+[1,2]
+[2,1]
+LUT : afstand
+Transpose
+Speaker: Youri
+
+Look-up-table voorbeeld
+13
+0
+1
+2
+3
+0
+x
+1
+x
+2
+x
+3
+x
+N2
+E2
+S2
+W2
+N1
+99
+99
+E1
+99
+99
+S1
+99
+99
+W1
+99
+99
+LUT : afstand
+puzzelstuk 1
+puzzelstuk 2
+LUT:   matches
+[ puzzelstuk 1,
+  puzzelstuk 2,
+  edge puzzelstuk 1,
+  edge puzzelstuk 2 ]
+ = gewicht
+Speaker: Youri
+
+look-up-table mapping
+14
+LUT:   afstand
+[ puzzelstuk 1,
+  puzzelstuk 2,
+  edge puzzelstuk 1,
+  edge puzzelstuk 2 ]
+ = afstand
+LUT:   matches
+[ puzzelstuk 1,
+  edge puzzelstuk 1 ]
+ = [stuk, edge, afstand]
+Speaker: Youri
+
+beste match
+15
+best match
+[ x, y] =
+[stuk , top edge]
+Stap 1
+stap 2
+Seed
+LUT:   matches
+[ puzzelstuk 1,
+  edge puzzelstuk 1 ]
+ = [stuk, edge, afstand]
+richting
+index
+North
+0
+East
+1
+South
+2
+West
+3
+N
+W
+Stap 3
+E
+S
+X
+Y
+Speaker: Youri
+
+beste match
+16
+0
+3
+1
+2
+2
+1
+3
+0
+1
+0
+2
+3
+0
+3
+1
+2
+2
+1
+3
+0
+3
+2
+0
+1
+3
+2
+0
+1
+0
+3
+1
+2
+2
+1
+3
+0
+3
+2
+0
+1
+3
+2
+0
+1
+1
+0
+2
+3
+2
+1
+3
+0
+1
+0
+2
+3
+1
+0
+2
+3
+0
+3
+1
+2
+0,0
+4,3
+1,3
+7,3
+2,1
+9,0
+3,2
+8,1
+5,1
+6,2
+10,0
+13,1
+11,3
+12,2
+14,2
+15,0
+LUT:   matches
+[ puzzelstuk 1,
+  edge puzzelstuk 1 ]
+ = [stuk, edge, afstand]
+
+17
+0,0
+4,2
+1,1
+7,3
+2,1
+9,3
+3,1
+8,3
+5,2
+6,2
+10,3
+rotatie  reductie
+13,3
+11,3
+12,3
+14,3
+15,3
+rotatie
+0
+1
+2
+3
+telling
+1
+3
+3
+9
+0,1
+4,3
+1,2
+7,0
+2,2
+9,0
+3,2
+8,0
+5,3
+6,3
+10,0
+13,0
+11,0
+12,0
+14,0
+15,0
+rotatie
+0
+1
+2
+3
+telling
+9
+1
+3
+3
+-90° => +1 rot
+=> 15
+=> 7
+
+resultaten
+18
+
+resultaten
+19
+Stap = 6
+
+resultaten
+20
+extrapolatie 2
+extrapolatie 1
+Gewicht  = 	 abs( b1 - extr(b1) )	+ abs( b2 - extr(b2) )
+	       + abs( r1  - extr(r1) )	+ abs( r2  - extr(r2) )
+	       + abs( g1 - extr(g1) )	+ abs( g2 - extr(g2) )
+b1, r1, g1
+b2, r2, g2
+Speaker: Youri
+
+resultaten
+21
+Scipy.spatial.distance
+Stap = 1
+
+resultaten
+22
+correlation
+cityblock
+Speaker: Youri
+
+resultaten
+23
+Convolutie
+Speaker: Youri
+
+Mapping - resultaten
+Geen methode die alles goed oplost
+
+Meerdere methodes achter elkaar toepassen als een zeef
+
+24
+Speaker: Youri
+
+Project - multimedia: Puzzle Solver
+
+Youri Vassiliev
+youri.vassiliev@ugent.be
+
+Francis Begyn
+francis.begyn@ugent.be
+Zijn er nog vragen?
+25
